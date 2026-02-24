@@ -12,6 +12,7 @@
             --ink-color: #2c2c2c;
             --accent-red: #8b0000;
             --bg-dark: #121212;
+            --admin-bg: #1a1a1a;
         }
 
         /* RESET & BASE */
@@ -31,6 +32,12 @@
             background-color: transparent !important;
             overflow: hidden;
             padding: 50px; 
+        }
+
+        /* ADMIN MODE STYLING */
+        body.admin-mode {
+            background-color: var(--admin-bg);
+            color: #eee;
         }
 
         /* AUDIENCE SUBMISSION UI */
@@ -63,7 +70,7 @@
             resize: none;
         }
 
-        button#submit-btn {
+        button.action-btn {
             background: var(--accent-red);
             color: white;
             border: none;
@@ -76,8 +83,8 @@
             box-shadow: 0 5px 0 #5a0000;
             transition: all 0.1s;
         }
-        button#submit-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #5a0000; }
-        button#submit-btn:disabled { background: #666; cursor: not-allowed; box-shadow: none; }
+        button.action-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #5a0000; }
+        button.action-btn:disabled { background: #666; cursor: not-allowed; box-shadow: none; }
 
         /* LIVE OVERLAY - PROJECTOR OPTIMIZED MASONRY */
         #qa-container {
@@ -103,6 +110,7 @@
             border-left: 10px solid var(--accent-red); 
             clip-path: polygon(0% 0%, 100% 1%, 99% 99%, 1% 100%);
             break-inside: avoid;
+            transition: opacity 0.5s ease;
         }
 
         .card-label { 
@@ -128,6 +136,30 @@
             word-wrap: break-word;
         }
 
+        /* ADMIN SPECIFIC CARDS */
+        .admin-card {
+            background: #2a2a2a;
+            color: #ccc;
+            border: 1px solid #444;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 8px;
+        }
+        .admin-controls { display: flex; gap: 10px; }
+        .toggle-btn {
+            padding: 8px 15px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Special Elite', serif;
+        }
+        .btn-show { background: #2e7d32; color: white; }
+        .btn-hide { background: #c62828; color: white; }
+        .btn-delete { background: #444; color: white; }
+
         @keyframes cardEnter {
             from { opacity: 0; transform: scale(0.95) translateY(40px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
@@ -135,6 +167,15 @@
 
         .hidden { display: none !important; }
         #status-msg { text-align: center; margin-top: 15px; font-size: 0.9rem; min-height: 1.2em; color: var(--accent-red); }
+        
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #444;
+        }
     </style>
 </head>
 <body>
@@ -144,8 +185,20 @@
         <h1>A Home for the Peculiar</h1>
         <span class="sub-header">Submit your inquiry to the panel</span>
         <textarea id="question-input" placeholder="Type your inquiry here..."></textarea>
-        <button id="submit-btn">SEND INTO THE LOOP</button>
+        <button id="submit-btn" class="action-btn">SEND INTO THE LOOP</button>
         <div id="status-msg"></div>
+    </div>
+
+    <!-- ADMIN PANEL VIEW -->
+    <div id="admin-view" class="hidden" style="max-width: 800px; margin: 0 auto;">
+        <div class="admin-header">
+            <h2 style="color: var(--accent-red);">Moderation Chamber</h2>
+            <div>
+                <button onclick="window.bulkVisibility(true)" class="toggle-btn btn-show">Show All</button>
+                <button onclick="window.bulkVisibility(false)" class="toggle-btn btn-hide">Hide All</button>
+            </div>
+        </div>
+        <div id="admin-list"></div>
     </div>
 
     <!-- PROJECTOR OVERLAY VIEW -->
@@ -154,9 +207,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // FIXED FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyBTjoy3Kvc3L5Fl6XIy3lq-L8BFMOY77gM",
             authDomain: "missperi.firebaseapp.com",
@@ -170,23 +222,23 @@
         const APP_COLLECTION_ID = 'peculiar_app';
         const params = new URLSearchParams(window.location.search);
         const isOverlay = params.get('display') === 'true';
+        const isAdmin = params.get('admin') === 'true';
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         signInAnonymously(auth).then((userCred) => {
-            if (isOverlay) {
+            if (isAdmin) {
+                setupAdmin(db);
+            } else if (isOverlay) {
                 setupOverlay(db);
             } else {
                 setupSubmission(db, userCred.user.uid);
             }
-        }).catch(err => {
-            console.error("Connection Error:", err);
-            document.body.innerHTML = `<div style="color:white; padding:20px;">Connection to the Loop failed. Check Firebase Rules.</div>`;
         });
 
+        // --- SUBMISSION LOGIC ---
         function setupSubmission(db, uid) {
             document.getElementById('submission-view').classList.remove('hidden');
             const btn = document.getElementById('submit-btn');
@@ -202,30 +254,86 @@
                     await addDoc(collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions'), {
                         text: text,
                         timestamp: serverTimestamp(),
-                        author: uid
+                        author: uid,
+                        visible: false // Hidden by default until admin approves
                     });
                     input.value = "";
                     status.innerText = "Sent successfully into the loop.";
                     setTimeout(() => status.innerText = "", 4000);
                 } catch (e) {
-                    status.innerText = "Transmission Error. Ensure Firestore Rules are set to Public.";
+                    status.innerText = "Transmission Error.";
                 } finally {
                     btn.disabled = false;
                 }
             };
         }
 
+        // --- ADMIN MODERATION LOGIC ---
+        let allQuestionDocs = [];
+        function setupAdmin(db) {
+            document.body.classList.add('admin-mode');
+            const adminView = document.getElementById('admin-view');
+            const adminList = document.getElementById('admin-list');
+            adminView.classList.remove('hidden');
+
+            const q = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
+            onSnapshot(q, (snapshot) => {
+                allQuestionDocs = snapshot.docs;
+                const items = snapshot.docs
+                    .map(d => ({ id: d.id, ...d.data() }))
+                    .sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+
+                adminList.innerHTML = "";
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'admin-card';
+                    div.innerHTML = `
+                        <div style="flex:1; padding-right:20px;">
+                            <small style="opacity:0.5">${item.id.substring(0,5)}</small>
+                            <p style="margin:5px 0; font-size:1.1rem;">${escape(item.text)}</p>
+                        </div>
+                        <div class="admin-controls">
+                            <button class="toggle-btn ${item.visible ? 'btn-hide' : 'btn-show'}" 
+                                onclick="window.toggleVisibility('${item.id}', ${!item.visible})">
+                                ${item.visible ? 'HIDE' : 'SHOW'}
+                            </button>
+                            <button class="toggle-btn btn-delete" onclick="window.deleteItem('${item.id}')">DEL</button>
+                        </div>
+                    `;
+                    adminList.appendChild(div);
+                });
+            });
+
+            window.toggleVisibility = async (id, state) => {
+                const docRef = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', id);
+                await updateDoc(docRef, { visible: state });
+            };
+
+            window.deleteItem = async (id) => {
+                if(!confirm("Erase this inquiry from existence?")) return;
+                const docRef = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', id);
+                await deleteDoc(docRef);
+            };
+
+            window.bulkVisibility = async (state) => {
+                for (const d of allQuestionDocs) {
+                    const docRef = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', d.id);
+                    await updateDoc(docRef, { visible: state });
+                }
+            };
+        }
+
+        // --- PROJECTOR OVERLAY LOGIC ---
         function setupOverlay(db) {
             document.body.classList.add('obs-overlay');
             const container = document.getElementById('qa-container');
             container.classList.remove('hidden');
 
             const q = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
-            // We fetch the latest 10 questions
             onSnapshot(q, (snapshot) => {
                 const items = snapshot.docs
-                    .map(doc => doc.data())
-                    .filter(d => d.timestamp)
+                    .map(doc => ({id: doc.id, ...doc.data()}))
+                    .filter(d => d.timestamp && d.visible === true) // ONLY SHOW VISIBLE
                     .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
                     .slice(0, 10);
 
@@ -236,8 +344,6 @@
                     card.innerHTML = `<div class="card-label">Incoming Inquiry</div><p class="question-text">${escape(data.text)}</p>`;
                     container.appendChild(card);
                 });
-            }, (error) => {
-                console.error("Snapshot error:", error);
             });
         }
 
