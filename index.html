@@ -113,7 +113,6 @@
             perspective: 2500px;
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* Start from top to control stacking flow */
         }
 
         .question-card {
@@ -137,10 +136,10 @@
             will-change: transform, opacity;
             transform-origin: center center;
             
-            /* Initial Entry State */
+            /* Initial Entry State: Slides in from the distance */
             opacity: 0;
-            transform: translateY(500px) rotateX(-60deg) scale(0.4);
-            filter: blur(20px);
+            transform: translateY(400px) rotateX(-45deg) scale(0.5) translateZ(-200px);
+            filter: blur(15px);
             z-index: 100;
         }
 
@@ -149,37 +148,35 @@
         /* The Spotlight (Main) Question - High focal point */
         .question-card[data-index="0"] {
             opacity: 1;
-            transform: translateY(0) rotateX(0deg) scale(1) translateZ(50px) !important;
+            transform: translateY(0) rotateX(0deg) scale(1.1) translateZ(0) !important;
             filter: blur(0);
             z-index: 60;
             background-color: var(--paper-color);
-            box-shadow: 0 40px 100px rgba(0,0,0,0.6);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
         }
 
-        /* Piled Questions - Aligned neatly below and behind */
+        /* Piled Questions - Aligned neatly below and behind with preserved motion */
         .question-card:not([data-index="0"]) {
             opacity: 1;
-            /* Step-down translateY: 150px for the first gap, then 90px per card.
-               This ensures text of cards behind is visible. 
-            */
+            /* organized step-down transforms */
             transform: 
-                translateY(calc(var(--stack-index) * 110px + 60px)) 
-                translateZ(calc(var(--stack-index) * -120px)) 
-                rotateX(calc(var(--stack-index) * -8deg))
-                scale(calc(1 - (var(--stack-index) * 0.08)));
+                translateY(calc(var(--stack-index) * 80px + 120px)) 
+                translateZ(calc(var(--stack-index) * -100px)) 
+                rotateX(calc(var(--stack-index) * -5deg))
+                scale(calc(1 - (var(--stack-index) * 0.1)));
             
-            filter: blur(calc(var(--stack-index) * 2px));
+            filter: blur(calc(var(--stack-index) * 1.5px));
             z-index: calc(50 - var(--stack-index));
-            background-color: #d8d1c0; /* Subtle darkening for depth */
-            opacity: calc(1 - (var(--stack-index) * 0.15));
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            background-color: #d8d1c0; 
+            opacity: calc(1 - (var(--stack-index) * 0.2));
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
 
-        /* Hidden/Exit state */
+        /* Hidden/Exit state - Fly out through the top */
         .question-card.exiting {
             opacity: 0;
-            transform: translateY(-400px) rotateX(60deg) scale(0.6) translateZ(100px) !important;
-            filter: blur(30px);
+            transform: translateY(-300px) rotateX(45deg) scale(0.7) translateZ(100px) !important;
+            filter: blur(20px);
         }
 
         .card-label { 
@@ -202,17 +199,11 @@
             line-height: 1.3;
             font-family: 'Special Elite', serif;
             word-wrap: break-word;
-            max-height: 3.9em; /* Limit height to maintain organized stack */
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
         }
 
         /* Piled cards text is slightly smaller to signify history */
         .question-card:not([data-index="0"]) .question-text {
-            font-size: 1.5rem;
-            opacity: 0.8;
+            font-size: 1.6rem;
         }
 
         /* ADMIN INTERFACE */
