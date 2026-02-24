@@ -107,16 +107,18 @@
             position: relative;
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
             box-shadow: 12px 12px 30px rgba(0,0,0,0.5);
-            animation: cardEnter 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            animation: cardEnter 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             border-left: 10px solid var(--accent-red); 
             clip-path: polygon(0% 0%, 100% 1%, 99% 99%, 1% 100%);
             break-inside: avoid;
-            transition: opacity 0.5s ease, transform 0.5s ease;
+            transition: opacity 0.6s ease, transform 0.6s ease;
+            pointer-events: none;
         }
 
         /* Disappearing state */
         .question-card.exiting {
-            animation: cardExit 0.6s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+            animation: cardExit 0.7s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards !important;
+            opacity: 0;
         }
 
         .card-label { 
@@ -170,13 +172,13 @@
         .btn-delete { background: #e74c3c; color: white; }
 
         @keyframes cardEnter {
-            from { opacity: 0; transform: scale(0.9) translateY(40px); }
+            from { opacity: 0; transform: scale(0.8) translateY(100px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         @keyframes cardExit {
-            from { opacity: 1; transform: scale(1) translateY(0); }
-            to { opacity: 0; transform: scale(0.9) translateY(-40px); }
+            0% { opacity: 1; transform: scale(1) translateY(0); }
+            100% { opacity: 0; transform: scale(0.8) translateY(-100px); }
         }
 
         @keyframes cardEnterAdmin {
@@ -353,7 +355,7 @@
 
             const q = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
             
-            // Local state to manage transition tracking
+            // Track currently rendered IDs to prevent "instant popping"
             let activeQuestionIds = new Set();
 
             onSnapshot(q, (snapshot) => {
@@ -365,33 +367,32 @@
 
                 const currentIds = new Set(currentData.map(d => d.id));
 
-                // 1. Identify items that need to EXIT
-                const exitingIds = [...activeQuestionIds].filter(id => !currentIds.has(id));
-
-                exitingIds.forEach(id => {
-                    const el = document.getElementById(`q-${id}`);
-                    if (el) {
-                        el.classList.add('exiting');
-                        // Remove from DOM after animation completes
-                        setTimeout(() => {
-                            if (el.parentNode) el.parentNode.removeChild(el);
-                        }, 550);
+                // EXIT ANIMATION LOGIC
+                activeQuestionIds.forEach(id => {
+                    if (!currentIds.has(id)) {
+                        const el = document.getElementById(`q-${id}`);
+                        if (el && !el.classList.contains('exiting')) {
+                            el.classList.add('exiting');
+                            // Delay removal until animation ends
+                            setTimeout(() => {
+                                if (el && el.parentNode) el.remove();
+                                activeQuestionIds.delete(id);
+                            }, 700);
+                        }
                     }
-                    activeQuestionIds.delete(id);
                 });
 
-                // 2. Identify items that need to ENTER or REMAIN
+                // ENTER ANIMATION LOGIC
                 currentData.forEach(data => {
                     if (!activeQuestionIds.has(data.id)) {
-                        // Create and prepend new card
+                        activeQuestionIds.add(data.id);
                         const card = document.createElement('div');
                         card.id = `q-${data.id}`;
                         card.className = 'question-card';
                         card.innerHTML = `<div class="card-label">Incoming Inquiry</div><p class="question-text">${escape(data.text)}</p>`;
                         
-                        // Find position or just prepend
-                        container.prepend(card);
-                        activeQuestionIds.add(data.id);
+                        // Add to top of the list
+                        container.insertBefore(card, container.firstChild);
                     }
                 });
             });
