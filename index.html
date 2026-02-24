@@ -13,8 +13,8 @@
             --accent-red: #8b0000;
             --bg-dark: #121212;
             --admin-bg: #0f1115;
-            --transition-speed: 0.9s;
-            --ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --transition-speed: 1.2s;
+            --ease: cubic-bezier(0.23, 1, 0.32, 1);
         }
 
         /* RESET & BASE */
@@ -104,20 +104,20 @@
         button.action-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #4a0000; }
         button.action-btn:disabled { background: #666 !important; cursor: not-allowed; box-shadow: none; transform: none; }
 
-        /* LIVE OVERLAY - ORGANIZED PILE */
+        /* LIVE OVERLAY - PILE MECHANICS */
         #qa-container {
             position: relative;
             max-width: 900px;
             margin: 50px auto;
             height: 90vh;
-            perspective: 2500px;
+            perspective: 2000px;
             display: flex;
             justify-content: center;
         }
 
         .question-card {
             position: absolute;
-            width: 90%;
+            width: 85%;
             background-color: var(--paper-color);
             padding: 35px 45px; 
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
@@ -125,59 +125,56 @@
             border-left: 12px solid var(--accent-red); 
             clip-path: polygon(0.5% 0%, 100% 0.5%, 99.5% 99.5%, 0% 100%);
             
-            /* RESTORED ALL TRANSITIONS */
+            /* Clean single-source transitions */
             transition: 
                 transform var(--transition-speed) var(--ease),
-                opacity var(--transition-speed) ease,
-                filter var(--transition-speed) ease,
-                background-color var(--transition-speed) ease,
-                box-shadow var(--transition-speed) ease;
+                opacity var(--transition-speed) var(--ease),
+                filter var(--transition-speed) var(--ease),
+                box-shadow var(--transition-speed) var(--ease);
             
             pointer-events: none;
             will-change: transform, opacity;
             transform-origin: center center;
             
-            /* Initial Entry State: Slides in from below and distance */
+            /* 1. ENTRY STATE (Base CSS) */
             opacity: 0;
-            transform: translateY(600px) rotateX(-60deg) scale(0.4) translateZ(-500px);
-            filter: blur(20px);
-            z-index: 100;
+            transform: translateY(600px) rotateX(-45deg) scale(0.5) translateZ(-400px);
+            filter: blur(15px);
+            z-index: 10;
         }
 
-        /* ORGANIZED STACKING LOGIC */
+        /* 2. ACTIVE STATES (Triggered by data-index) */
         
-        /* The Spotlight (Main) Question - High focal point */
-        .question-card[data-active="true"][data-index="0"] {
-            opacity: 1 !important;
-            transform: translateY(0) rotateX(0deg) scale(1.1) translateZ(0) !important;
-            filter: blur(0) !important;
-            z-index: 60;
-            background-color: var(--paper-color);
+        /* The Spotlight Card */
+        .question-card[data-index="0"] {
+            opacity: 1;
+            transform: translateY(0) rotateX(0deg) scale(1.1) translateZ(0);
+            filter: blur(0);
+            z-index: 100;
             box-shadow: 0 30px 80px rgba(0,0,0,0.6);
         }
 
-        /* Piled Questions - Aligned neatly below and behind with preserved motion */
-        .question-card[data-active="true"]:not([data-index="0"]) {
-            opacity: 1 !important;
-            /* organized step-down transforms with transition-friendly variables */
+        /* The History Pile (Organized alignment) */
+        .question-card[data-index]:not([data-index="0"]) {
+            opacity: 1;
+            /* Incremental step-down based on stack index */
             transform: 
-                translateY(calc(var(--stack-index) * 90px + 130px)) 
-                translateZ(calc(var(--stack-index) * -150px)) 
-                rotateX(calc(var(--stack-index) * -10deg))
-                scale(calc(1 - (var(--stack-index) * 0.12))) !important;
+                translateY(calc(var(--stack-index) * 85px + 140px)) 
+                translateZ(calc(var(--stack-index) * -120px)) 
+                rotateX(calc(var(--stack-index) * -8deg))
+                scale(calc(1 - (var(--stack-index) * 0.1)));
             
-            filter: blur(calc(var(--stack-index) * 2px)) !important;
-            z-index: calc(50 - var(--stack-index));
-            background-color: #d8d1c0; 
-            opacity: calc(1 - (var(--stack-index) * 0.2)) !important;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            filter: blur(calc(var(--stack-index) * 2px));
+            z-index: calc(90 - var(--stack-index));
+            opacity: calc(1 - (var(--stack-index) * 0.25));
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
         }
 
-        /* Hidden/Exit state - Fly out through the top */
+        /* 3. EXIT STATE */
         .question-card.exiting {
             opacity: 0 !important;
-            transform: translateY(-500px) rotateX(60deg) scale(0.6) translateZ(200px) !important;
-            filter: blur(30px) !important;
+            transform: translateY(-500px) rotateX(45deg) scale(0.7) translateZ(200px) !important;
+            filter: blur(20px) !important;
         }
 
         .card-label { 
@@ -202,9 +199,8 @@
             word-wrap: break-word;
         }
 
-        /* Piled cards text is slightly smaller to signify history */
         .question-card:not([data-index="0"]) .question-text {
-            font-size: 1.6rem;
+            font-size: 1.5rem;
         }
 
         /* ADMIN INTERFACE */
@@ -418,15 +414,15 @@
                 const activeIds = new Set(activeData.map(d => d.id));
                 const existingElements = Array.from(container.querySelectorAll('.question-card'));
                 
+                // 1. Handle Exits
                 existingElements.forEach(el => {
-                    const id = el.dataset.id;
-                    if (!activeIds.has(id) && !el.classList.contains('exiting')) {
+                    if (!activeIds.has(el.dataset.id) && !el.classList.contains('exiting')) {
                         el.classList.add('exiting');
-                        el.removeAttribute('data-active');
-                        setTimeout(() => el.remove(), 1000);
+                        setTimeout(() => el.remove(), 1200);
                     }
                 });
 
+                // 2. Handle Entries & Updates
                 activeData.forEach((data, index) => {
                     let el = document.getElementById(`q-${data.id}`);
                     
@@ -442,21 +438,14 @@
                         container.appendChild(el);
                     }
 
-                    // Delay attribute settings to ensure CSS transition triggers after insertion
-                    requestAnimationFrame(() => {
-                        requestAnimationFrame(() => {
-                            el.setAttribute('data-index', index);
-                            el.setAttribute('data-active', 'true');
-                            el.style.setProperty('--stack-index', index);
-                            
-                            const label = el.querySelector('.card-label');
-                            if (index === 0) {
-                                label.innerText = "The Primary Inquiry";
-                            } else {
-                                label.innerText = `Peculiar History [${index}]`;
-                            }
-                        });
-                    });
+                    // Force a single layout recalculation delay to trigger CSS transition
+                    setTimeout(() => {
+                        el.setAttribute('data-index', index);
+                        el.style.setProperty('--stack-index', index);
+                        
+                        const label = el.querySelector('.card-label');
+                        label.innerText = (index === 0) ? "The Primary Inquiry" : `Peculiar History [${index}]`;
+                    }, 50); // Small delay allows the browser to paint the entry state first
                 });
             });
         }
