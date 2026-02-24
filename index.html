@@ -13,8 +13,8 @@
             --accent-red: #8b0000;
             --bg-dark: #121212;
             --admin-bg: #0f1115;
-            --transition-speed: 1s;
-            --ease: cubic-bezier(0.23, 1, 0.32, 1);
+            --transition-speed: 0.8s;
+            --ease: cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy entry ease */
         }
 
         /* RESET & BASE */
@@ -36,6 +36,17 @@
             padding: 50px; 
         }
 
+        /* ATMOSPHERIC AUDIENCE BACKGROUND */
+        body:not(.admin-mode):not(.obs-overlay) {
+            background: 
+                linear-gradient(rgba(18, 18, 18, 0.85), rgba(18, 18, 18, 0.95)),
+                url('https://www.transparenttextures.com/patterns/dark-matter.png'),
+                url('https://images.unsplash.com/photo-1501139083538-0139583c060f?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
         /* ADMIN MODE STYLING */
         body.admin-mode {
             background-color: var(--admin-bg);
@@ -45,58 +56,68 @@
 
         /* AUDIENCE SUBMISSION UI */
         .submission-container {
-            max-width: 500px;
-            margin: 80px auto;
+            max-width: 550px;
+            margin: 60px auto;
             background: var(--paper-color);
-            padding: 40px 30px;
+            padding: 50px 40px;
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
-            box-shadow: 15px 15px 40px rgba(0,0,0,0.8);
-            clip-path: polygon(1% 2%, 98% 0%, 100% 97%, 3% 100%, 0% 95%);
-            transform: rotate(-1deg);
-            transition: transform 0.3s ease;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5), 20px 20px 60px rgba(0,0,0,0.9);
+            clip-path: polygon(1% 1%, 99% 0%, 100% 98%, 2% 100%, 0% 95%);
+            transform: rotate(-0.5deg);
+            position: relative;
+        }
+        .submission-container::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border: 1px solid rgba(0,0,0,0.1);
+            pointer-events: none;
         }
 
-        h1 { font-family: 'IM Fell English', serif; color: var(--accent-red); text-align: center; font-size: 2.2rem; margin: 0 0 10px 0; }
-        .sub-header { text-align: center; font-style: italic; opacity: 0.8; margin-bottom: 30px; display: block; }
+        h1 { font-family: 'IM Fell English', serif; color: var(--accent-red); text-align: center; font-size: 2.5rem; margin: 0 0 10px 0; }
+        .sub-header { text-align: center; font-style: italic; opacity: 0.8; margin-bottom: 30px; display: block; letter-spacing: 1px; }
         
         textarea#question-input {
             width: 100%;
-            height: 150px;
+            height: 180px;
             background: transparent;
             border: none;
-            border-bottom: 2px solid rgba(0,0,0,0.2);
+            border-bottom: 1px dashed rgba(0,0,0,0.3);
             font-family: 'Special Elite', serif;
-            font-size: 1.2rem;
-            line-height: 1.5;
+            font-size: 1.25rem;
+            line-height: 1.6;
             outline: none;
             padding: 10px;
             display: block;
             resize: none;
+            color: var(--ink-color);
         }
 
         button.action-btn {
             background: var(--accent-red);
             color: white;
             border: none;
-            padding: 20px;
+            padding: 22px;
             font-family: 'Special Elite', serif;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             cursor: pointer;
             width: 100%;
-            margin-top: 30px;
-            box-shadow: 0 5px 0 #5a0000;
-            transition: all 0.1s;
+            margin-top: 40px;
+            box-shadow: 0 6px 0 #4a0000;
+            transition: all 0.2s;
+            letter-spacing: 2px;
         }
-        button.action-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #5a0000; }
-        button.action-btn:disabled { background: #666 !important; cursor: not-allowed; box-shadow: none; }
+        button.action-btn:hover { background: #a00000; transform: translateY(-2px); }
+        button.action-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #4a0000; }
+        button.action-btn:disabled { background: #666 !important; cursor: not-allowed; box-shadow: none; transform: none; }
 
         /* LIVE OVERLAY - PROJECTOR */
         #qa-container {
             position: relative;
-            max-width: 1000px;
+            max-width: 900px;
             margin: 0 auto;
             height: 100vh;
-            perspective: 1200px;
+            perspective: 2000px;
         }
 
         .question-card {
@@ -105,51 +126,55 @@
             background-color: var(--paper-color);
             padding: 35px 45px; 
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
-            box-shadow: 8px 8px 25px rgba(0,0,0,0.4);
-            border-left: 12px solid var(--accent-red); 
-            clip-path: polygon(0% 0%, 100% 1%, 99.5% 99%, 0.5% 100%);
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.3);
+            border-left: 15px solid var(--accent-red); 
+            clip-path: polygon(0.5% 0%, 100% 0.5%, 99.5% 99.5%, 0% 100%);
             
-            /* The Core Animation Engine */
+            /* Enhanced Animation Engine */
             transition: 
                 transform var(--transition-speed) var(--ease),
-                opacity var(--transition-speed) var(--ease);
+                opacity var(--transition-speed) ease,
+                filter 0.5s ease;
             
             pointer-events: none;
             will-change: transform, opacity;
-            transform-origin: center top;
+            transform-origin: center center;
             
-            /* Initial entry state (hidden) */
+            /* Hidden Entrance State */
             opacity: 0;
-            transform: translateY(calc(var(--y-offset, 0px) + 50px)) rotateX(-15deg) scale(0.95);
+            transform: translateY(calc(var(--y-offset, 0px) + 200px)) rotateX(-30deg) scale(0.8);
+            filter: blur(5px);
         }
 
         /* Shown state */
         .question-card.active {
             opacity: 1;
             transform: translateY(var(--y-offset)) rotateX(0deg) scale(1);
+            filter: blur(0);
         }
 
         /* Hidden/Exit state */
         .question-card.exiting {
             opacity: 0;
-            transform: translateY(calc(var(--y-offset) - 80px)) rotateX(15deg) scale(0.9);
+            transform: translateY(calc(var(--y-offset) - 150px)) rotateX(30deg) scale(0.8);
+            filter: blur(10px);
         }
 
         .card-label { 
-            font-size: 0.9rem; 
+            font-size: 0.85rem; 
             color: var(--accent-red); 
             text-transform: uppercase; 
-            letter-spacing: 5px;
-            margin-bottom: 12px;
+            letter-spacing: 6px;
+            margin-bottom: 15px;
             font-weight: bold;
             display: flex;
             align-items: center;
-            opacity: 0.7;
+            opacity: 0.6;
         }
-        .card-label::after { content: ""; flex: 1; height: 1px; background: rgba(139, 0, 0, 0.3); margin-left: 15px; }
+        .card-label::after { content: ""; flex: 1; height: 1px; background: rgba(139, 0, 0, 0.2); margin-left: 20px; }
 
         .question-text { 
-            font-size: 1.8rem; 
+            font-size: 1.9rem; 
             color: var(--ink-color); 
             margin: 0; 
             line-height: 1.4;
@@ -188,7 +213,7 @@
         .btn-delete { background: #e74c3c; color: white; }
 
         .hidden { display: none !important; }
-        #status-msg { text-align: center; margin-top: 15px; font-size: 0.9rem; min-height: 1.2em; color: var(--accent-red); }
+        #status-msg { text-align: center; margin-top: 15px; font-size: 0.9rem; min-height: 1.2em; color: var(--accent-red); font-weight: bold; }
         
         .admin-header {
             display: flex;
@@ -212,7 +237,7 @@
     <!-- VIEW 1: SUBMISSION -->
     <div id="view-submission" class="submission-container hidden">
         <h1>A Home for the Peculiar</h1>
-        <span class="sub-header">Submit your inquiry to the panel</span>
+        <span class="sub-header">Submit your inquiry to the loop</span>
         <textarea id="question-input" placeholder="Type your inquiry here..."></textarea>
         <button id="submit-btn" class="action-btn">SEND INTO THE LOOP</button>
         <div id="status-msg"></div>
@@ -369,18 +394,19 @@
             view.classList.remove('hidden');
 
             const qRef = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
-            const CARD_GAP = 30;
+            const CARD_GAP = 25;
 
             onSnapshot(qRef, (snapshot) => {
                 const activeData = snapshot.docs
                     .map(d => ({ id: d.id, ...d.data() }))
                     .filter(d => d.timestamp && d.visible === true)
                     .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
-                    .slice(0, 8);
+                    .slice(0, 6); // Limit to 6 for clean stacking
 
                 const activeIds = new Set(activeData.map(d => d.id));
                 const existingElements = Array.from(container.querySelectorAll('.question-card'));
                 
+                // 1. Cleanup old cards
                 existingElements.forEach(el => {
                     const id = el.dataset.id;
                     if (!activeIds.has(id) && !el.classList.contains('exiting')) {
@@ -390,6 +416,7 @@
                     }
                 });
 
+                // 2. Position calculation and creation
                 let currentY = 0;
                 activeData.forEach((data, index) => {
                     let el = document.getElementById(`q-${data.id}`);
@@ -405,11 +432,11 @@
                         `;
                         
                         // Set the y-offset early so the initial transition starts from a valid spot
-                        el.style.setProperty('--y-offset', `${currentY}px`);
+                        // We use a temporary high Y to slide in from bottom
+                        el.style.setProperty('--y-offset', `${currentY + 200}px`);
                         container.appendChild(el);
                         
-                        // Nested requestAnimationFrame ensures the initial state is painted
-                        // BEFORE the .active class triggers the transition.
+                        // Trigger entry transition
                         requestAnimationFrame(() => {
                             requestAnimationFrame(() => {
                                 el.classList.add('active');
@@ -417,19 +444,21 @@
                         });
                     }
 
-                    // For existing cards, update position immediately
-                    el.style.setProperty('--y-offset', `${currentY}px`);
-                    if (el.classList.contains('active')) {
-                        el.classList.remove('exiting');
-                    }
-
-                    // Update Y offset for next card
-                    // Use a slightly larger timeout for new height calculations
-                    setTimeout(() => {
+                    // For existing or newly active cards, update position to "pile up"
+                    // We wrap this in an observer to handle height changes if text wraps
+                    const updatePos = () => {
                         if (el && !el.classList.contains('exiting')) {
+                            el.style.setProperty('--y-offset', `${currentY}px`);
                             currentY += el.offsetHeight + CARD_GAP;
                         }
-                    }, 50);
+                    };
+
+                    // Immediate position update
+                    updatePos();
+
+                    // Short timeout to catch browser layout for height-dependent piling
+                    setTimeout(updatePos, 50);
+                    setTimeout(updatePos, 300); // Re-check after partial animation
                 });
             });
         }
