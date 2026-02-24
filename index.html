@@ -125,6 +125,7 @@
             border-left: 12px solid var(--accent-red); 
             clip-path: polygon(0.5% 0%, 100% 0.5%, 99.5% 99.5%, 0% 100%);
             
+            /* RESTORED ALL TRANSITIONS */
             transition: 
                 transform var(--transition-speed) var(--ease),
                 opacity var(--transition-speed) ease,
@@ -136,47 +137,47 @@
             will-change: transform, opacity;
             transform-origin: center center;
             
-            /* Initial Entry State: Slides in from the distance */
+            /* Initial Entry State: Slides in from below and distance */
             opacity: 0;
-            transform: translateY(400px) rotateX(-45deg) scale(0.5) translateZ(-200px);
-            filter: blur(15px);
+            transform: translateY(600px) rotateX(-60deg) scale(0.4) translateZ(-500px);
+            filter: blur(20px);
             z-index: 100;
         }
 
         /* ORGANIZED STACKING LOGIC */
         
         /* The Spotlight (Main) Question - High focal point */
-        .question-card[data-index="0"] {
-            opacity: 1;
+        .question-card[data-active="true"][data-index="0"] {
+            opacity: 1 !important;
             transform: translateY(0) rotateX(0deg) scale(1.1) translateZ(0) !important;
-            filter: blur(0);
+            filter: blur(0) !important;
             z-index: 60;
             background-color: var(--paper-color);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
         }
 
         /* Piled Questions - Aligned neatly below and behind with preserved motion */
-        .question-card:not([data-index="0"]) {
-            opacity: 1;
-            /* organized step-down transforms */
+        .question-card[data-active="true"]:not([data-index="0"]) {
+            opacity: 1 !important;
+            /* organized step-down transforms with transition-friendly variables */
             transform: 
-                translateY(calc(var(--stack-index) * 80px + 120px)) 
-                translateZ(calc(var(--stack-index) * -100px)) 
-                rotateX(calc(var(--stack-index) * -5deg))
-                scale(calc(1 - (var(--stack-index) * 0.1)));
+                translateY(calc(var(--stack-index) * 90px + 130px)) 
+                translateZ(calc(var(--stack-index) * -150px)) 
+                rotateX(calc(var(--stack-index) * -10deg))
+                scale(calc(1 - (var(--stack-index) * 0.12))) !important;
             
-            filter: blur(calc(var(--stack-index) * 1.5px));
+            filter: blur(calc(var(--stack-index) * 2px)) !important;
             z-index: calc(50 - var(--stack-index));
             background-color: #d8d1c0; 
-            opacity: calc(1 - (var(--stack-index) * 0.2));
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            opacity: calc(1 - (var(--stack-index) * 0.2)) !important;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
         }
 
         /* Hidden/Exit state - Fly out through the top */
         .question-card.exiting {
-            opacity: 0;
-            transform: translateY(-300px) rotateX(45deg) scale(0.7) translateZ(100px) !important;
-            filter: blur(20px);
+            opacity: 0 !important;
+            transform: translateY(-500px) rotateX(60deg) scale(0.6) translateZ(200px) !important;
+            filter: blur(30px) !important;
         }
 
         .card-label { 
@@ -421,6 +422,7 @@
                     const id = el.dataset.id;
                     if (!activeIds.has(id) && !el.classList.contains('exiting')) {
                         el.classList.add('exiting');
+                        el.removeAttribute('data-active');
                         setTimeout(() => el.remove(), 1000);
                     }
                 });
@@ -440,16 +442,20 @@
                         container.appendChild(el);
                     }
 
+                    // Delay attribute settings to ensure CSS transition triggers after insertion
                     requestAnimationFrame(() => {
-                        el.setAttribute('data-index', index);
-                        el.style.setProperty('--stack-index', index);
-                        
-                        const label = el.querySelector('.card-label');
-                        if (index === 0) {
-                            label.innerText = "The Primary Inquiry";
-                        } else {
-                            label.innerText = `Peculiar History [${index}]`;
-                        }
+                        requestAnimationFrame(() => {
+                            el.setAttribute('data-index', index);
+                            el.setAttribute('data-active', 'true');
+                            el.style.setProperty('--stack-index', index);
+                            
+                            const label = el.querySelector('.card-label');
+                            if (index === 0) {
+                                label.innerText = "The Primary Inquiry";
+                            } else {
+                                label.innerText = `Peculiar History [${index}]`;
+                            }
+                        });
                     });
                 });
             });
