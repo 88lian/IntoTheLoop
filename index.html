@@ -112,14 +112,15 @@
             /* The Core Animation Engine */
             transition: 
                 transform var(--transition-speed) var(--ease),
-                opacity var(--transition-speed) var(--ease),
-                margin var(--transition-speed) var(--ease);
+                opacity var(--transition-speed) var(--ease);
             
             pointer-events: none;
             will-change: transform, opacity;
             transform-origin: center top;
+            
+            /* Initial entry state (hidden) */
             opacity: 0;
-            transform: translateY(100px) rotateX(-20deg) scale(0.9);
+            transform: translateY(calc(var(--y-offset, 0px) + 50px)) rotateX(-15deg) scale(0.95);
         }
 
         /* Shown state */
@@ -131,7 +132,7 @@
         /* Hidden/Exit state */
         .question-card.exiting {
             opacity: 0;
-            transform: translateY(calc(var(--y-offset) - 100px)) rotateX(20deg) scale(0.85);
+            transform: translateY(calc(var(--y-offset) - 80px)) rotateX(15deg) scale(0.9);
         }
 
         .card-label { 
@@ -277,9 +278,6 @@
             else initSubmission(userCred.user.uid);
         });
 
-        /**
-         * SUBMISSION VIEW LOGIC
-         */
         function initSubmission(uid) {
             const view = document.getElementById('view-submission');
             const btn = document.getElementById('submit-btn');
@@ -313,9 +311,6 @@
             };
         }
 
-        /**
-         * ADMIN VIEW LOGIC
-         */
         function initAdmin() {
             document.body.classList.add('admin-mode');
             const view = document.getElementById('view-admin');
@@ -367,9 +362,6 @@
             document.getElementById('bulk-hide').onclick = () => currentDocs.forEach(d => updateDoc(d.ref, { visible: false }));
         }
 
-        /**
-         * DISPLAY VIEW LOGIC (The "Virtual Layout" Engine)
-         */
         function initDisplay() {
             document.body.classList.add('obs-overlay');
             const view = document.getElementById('view-display');
@@ -377,30 +369,27 @@
             view.classList.remove('hidden');
 
             const qRef = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
-            const CARD_GAP = 30; // Gap between cards in pixels
+            const CARD_GAP = 30;
 
             onSnapshot(qRef, (snapshot) => {
                 const activeData = snapshot.docs
                     .map(d => ({ id: d.id, ...d.data() }))
                     .filter(d => d.timestamp && d.visible === true)
                     .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
-                    .slice(0, 8); // Keep screen clean
+                    .slice(0, 8);
 
                 const activeIds = new Set(activeData.map(d => d.id));
                 const existingElements = Array.from(container.querySelectorAll('.question-card'));
                 
-                // 1. Mark elements for removal
                 existingElements.forEach(el => {
                     const id = el.dataset.id;
                     if (!activeIds.has(id) && !el.classList.contains('exiting')) {
                         el.classList.add('exiting');
                         el.classList.remove('active');
-                        // Remove after animation completes
                         setTimeout(() => el.remove(), 1000);
                     }
                 });
 
-                // 2. Add or Update elements
                 let currentY = 0;
                 activeData.forEach((data, index) => {
                     let el = document.getElementById(`q-${data.id}`);
@@ -414,27 +403,32 @@
                             <div class="card-label">Incoming Inquiry</div>
                             <p class="question-text">${escapeHTML(data.text)}</p>
                         `;
+                        
+                        // Set the y-offset early so the initial transition starts from a valid spot
+                        el.style.setProperty('--y-offset', `${currentY}px`);
                         container.appendChild(el);
                         
-                        // Small frame delay to ensure browser registers the initial "hidden" state
+                        // Nested requestAnimationFrame ensures the initial state is painted
+                        // BEFORE the .active class triggers the transition.
                         requestAnimationFrame(() => {
-                            el.classList.add('active');
+                            requestAnimationFrame(() => {
+                                el.classList.add('active');
+                            });
                         });
                     }
 
-                    // 3. Coordinate Positioning
-                    // We calculate where this card should be based on its size and the cards before it
+                    // For existing cards, update position immediately
                     el.style.setProperty('--y-offset', `${currentY}px`);
-                    
-                    // Force the card to be "active" if it was already there
-                    el.classList.add('active');
-                    el.classList.remove('exiting');
+                    if (el.classList.contains('active')) {
+                        el.classList.remove('exiting');
+                    }
 
-                    // Increment Y for the next card
-                    // Use getBoundingClientRect to account for variable text length
-                    // We do this in a timeout to ensure DOM is ready
+                    // Update Y offset for next card
+                    // Use a slightly larger timeout for new height calculations
                     setTimeout(() => {
-                        if (el) currentY += el.offsetHeight + CARD_GAP;
+                        if (el && !el.classList.contains('exiting')) {
+                            currentY += el.offsetHeight + CARD_GAP;
+                        }
                     }, 50);
                 });
             });
