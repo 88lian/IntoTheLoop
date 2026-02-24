@@ -110,7 +110,7 @@
             max-width: 900px;
             margin: 50px auto;
             height: 90vh;
-            perspective: 2000px;
+            perspective: 2500px; /* Stronger perspective for depth */
             display: flex;
             justify-content: center;
         }
@@ -125,53 +125,55 @@
             border-left: 15px solid var(--accent-red); 
             clip-path: polygon(0.5% 0%, 100% 0.5%, 99.5% 99.5%, 0% 100%);
             
-            /* Enhanced Animation Engine */
             transition: 
                 transform var(--transition-speed) var(--ease),
                 opacity var(--transition-speed) ease,
                 filter var(--transition-speed) ease,
-                z-index 0s,
-                background-color 0.8s ease;
+                background-color var(--transition-speed) ease;
             
             pointer-events: none;
             will-change: transform, opacity;
             transform-origin: center center;
             
-            /* Hidden Entrance State */
+            /* Initial Entry State */
             opacity: 0;
-            transform: translateY(300px) rotateX(-45deg) scale(1.2);
-            filter: blur(10px);
+            transform: translateY(400px) rotateX(-45deg) scale(0.5);
+            filter: blur(15px);
             z-index: 100;
         }
 
-        /* The Main Spotlight Question */
-        .question-card.active[data-index="0"] {
+        /* LOGIC FOR PILING VIA DATA ATTRIBUTES */
+        
+        /* The Spotlight (Main) Question */
+        .question-card[data-index="0"] {
             opacity: 1;
-            transform: translateY(0) rotateX(0deg) scale(1.1);
+            transform: translateY(0) rotateX(0deg) scale(1.15) !important;
             filter: blur(0);
             z-index: 50;
             background-color: var(--paper-color);
+            box-shadow: 20px 30px 60px rgba(0,0,0,0.5);
         }
 
-        /* Piled Questions Below */
-        .question-card.active:not([data-index="0"]) {
+        /* Piled Questions (Previous inquiries) */
+        .question-card:not([data-index="0"]) {
             opacity: 1;
-            /* Calculate offset based on index: deeper questions move down and back */
+            /* Every card after the first moves down, shrinks, and pushes into the distance */
             transform: 
-                translateY(calc(var(--stack-index) * 60px + 120px)) 
-                translateZ(calc(var(--stack-index) * -50px)) 
-                rotateX(calc(var(--stack-index) * -2deg))
-                scale(calc(1 - (var(--stack-index) * 0.05)));
-            filter: blur(calc(var(--stack-index) * 1px));
+                translateY(calc(var(--stack-index) * 80px + 160px)) 
+                translateZ(calc(var(--stack-index) * -80px)) 
+                rotateX(calc(var(--stack-index) * -5deg))
+                scale(calc(1 - (var(--stack-index) * 0.1)));
+            filter: blur(calc(var(--stack-index) * 1.5px));
             z-index: calc(40 - var(--stack-index));
-            background-color: #d8d2c2; /* Darker paper for depth */
+            background-color: #cdc7b8; /* Darker paper to show it's in the background */
+            opacity: calc(1 - (var(--stack-index) * 0.2));
         }
 
         /* Hidden/Exit state */
         .question-card.exiting {
             opacity: 0;
-            transform: translateY(-200px) rotateX(30deg) scale(0.8);
-            filter: blur(15px);
+            transform: translateY(-300px) rotateX(45deg) scale(0.7) !important;
+            filter: blur(20px);
         }
 
         .card-label { 
@@ -188,12 +190,17 @@
         .card-label::after { content: ""; flex: 1; height: 1px; background: rgba(139, 0, 0, 0.2); margin-left: 20px; }
 
         .question-text { 
-            font-size: 1.9rem; 
+            font-size: 2.1rem; /* Slightly larger for the spotlight */
             color: var(--ink-color); 
             margin: 0; 
             line-height: 1.4;
             font-family: 'Special Elite', serif;
             word-wrap: break-word;
+        }
+
+        /* Adjust text size for piled cards so they don't look cramped */
+        .question-card:not([data-index="0"]) .question-text {
+            font-size: 1.6rem;
         }
 
         /* ADMIN INTERFACE */
@@ -402,16 +409,16 @@
                     .map(d => ({ id: d.id, ...d.data() }))
                     .filter(d => d.timestamp && d.visible === true)
                     .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
-                    .slice(0, 5); // Pile depth of 5 for performance and aesthetics
+                    .slice(0, 4); // Keep pile small (4) for maximum impact
 
                 const activeIds = new Set(activeData.map(d => d.id));
                 const existingElements = Array.from(container.querySelectorAll('.question-card'));
                 
+                // Remove cards no longer in the spotlight
                 existingElements.forEach(el => {
                     const id = el.dataset.id;
                     if (!activeIds.has(id) && !el.classList.contains('exiting')) {
                         el.classList.add('exiting');
-                        el.classList.remove('active');
                         setTimeout(() => el.remove(), 1000);
                     }
                 });
@@ -425,29 +432,25 @@
                         el.dataset.id = data.id;
                         el.className = 'question-card';
                         el.innerHTML = `
-                            <div class="card-label">Current Inquiry</div>
+                            <div class="card-label">The Inquiry</div>
                             <p class="question-text">${escapeHTML(data.text)}</p>
                         `;
                         container.appendChild(el);
-                        
-                        requestAnimationFrame(() => {
-                            requestAnimationFrame(() => {
-                                el.classList.add('active');
-                            });
-                        });
                     }
 
-                    // Update index attributes for CSS styling
-                    el.dataset.index = index;
-                    el.style.setProperty('--stack-index', index);
-                    
-                    // Update label based on position
-                    const label = el.querySelector('.card-label');
-                    if (index === 0) {
-                        label.innerText = "The Primary Inquiry";
-                    } else {
-                        label.innerText = `Peculiar History [${index}]`;
-                    }
+                    // Forcing a layout reflow for the new indices
+                    requestAnimationFrame(() => {
+                        el.setAttribute('data-index', index);
+                        el.style.setProperty('--stack-index', index);
+                        
+                        // Update labels for visual flavor
+                        const label = el.querySelector('.card-label');
+                        if (index === 0) {
+                            label.innerText = "The Primary Inquiry";
+                        } else {
+                            label.innerText = `Previous inquiry [${index}]`;
+                        }
+                    });
                 });
             });
         }
