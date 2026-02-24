@@ -26,30 +26,12 @@
             transition: background-color 0.5s ease;
         }
 
-        /* THE CHAMELEON: OBS OVERLAY MODE */
+        /* THE CHAMELEON: OBS / PROJECTOR OVERLAY MODE */
         body.obs-overlay {
             background-color: transparent !important;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end; /* Questions pop up from bottom */
-            align-items: flex-start;
-            padding: 40px;
+            padding: 50px; /* More breathing room for projector edges */
         }
-
-        /* CONFIGURATION PANEL (Setup UI) */
-        #config-panel {
-            max-width: 600px;
-            margin: 40px auto;
-            background: #fff;
-            padding: 30px;
-            border-top: 10px solid var(--accent-red);
-            font-family: sans-serif;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
-        #config-panel h2 { margin-top: 0; color: var(--accent-red); }
-        #config-panel textarea { width: 100%; height: 150px; font-family: monospace; padding: 10px; margin: 10px 0; border: 1px solid #ccc; }
-        #config-panel button { background: #333; color: white; border: none; padding: 12px 24px; cursor: pointer; font-weight: bold; }
 
         /* AUDIENCE SUBMISSION UI */
         .submission-container {
@@ -59,7 +41,6 @@
             padding: 40px 30px;
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
             box-shadow: 15px 15px 40px rgba(0,0,0,0.6);
-            /* Torn paper aesthetic */
             clip-path: polygon(1% 2%, 98% 0%, 100% 97%, 3% 100%, 0% 95%);
             transform: rotate(-1deg);
         }
@@ -97,75 +78,67 @@
         button#submit-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #5a0000; }
         button#submit-btn:disabled { background: #666; cursor: not-allowed; box-shadow: none; }
 
-        /* LIVE OVERLAY CARDS */
+        /* LIVE OVERLAY - PROJECTOR OPTIMIZED MASONRY */
         #qa-container {
-            width: 550px;
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
+            width: 100%;
+            column-count: 2; /* 2 Columns for better readability on large screens */
+            column-gap: 40px;
+            max-width: 1600px;
+            margin: 0 auto;
         }
 
+        @media (max-width: 1000px) { #qa-container { column-count: 1; } }
+
         .question-card {
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 40px; /* More vertical space */
             background-color: var(--paper-color);
-            padding: 30px;
+            padding: 40px; /* Larger padding for medium size */
             position: relative;
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
-            box-shadow: 10px 10px 25px rgba(0,0,0,0.4);
-            animation: cardEnter 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            border-left: 8px solid var(--accent-red);
-            /* Hand-torn paper effect */
-            clip-path: polygon(0% 0%, 100% 2%, 97% 98%, 0% 100%);
+            box-shadow: 12px 12px 30px rgba(0,0,0,0.5);
+            animation: cardEnter 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            border-left: 10px solid var(--accent-red); /* Thicker border for visibility */
+            clip-path: polygon(0% 0%, 100% 1%, 99% 99%, 1% 100%);
+            break-inside: avoid;
         }
 
         .card-label { 
-            font-size: 0.75rem; 
+            font-size: 1rem; /* Larger label */
             color: var(--accent-red); 
             text-transform: uppercase; 
-            letter-spacing: 3px;
-            margin-bottom: 12px;
+            letter-spacing: 4px;
+            margin-bottom: 15px;
             font-weight: bold;
             display: flex;
             align-items: center;
         }
         .card-label::after {
-            content: ""; flex: 1; height: 1px; background: rgba(139, 0, 0, 0.2); margin-left: 15px;
+            content: ""; flex: 1; height: 2px; background: rgba(139, 0, 0, 0.2); margin-left: 15px;
         }
 
         .question-text { 
-            font-size: 1.6rem; 
+            font-size: 2rem; /* Medium-Large size for projector readability */
             color: var(--ink-color); 
             margin: 0; 
-            line-height: 1.3;
+            line-height: 1.4;
             font-family: 'Special Elite', serif;
+            word-wrap: break-word;
         }
 
         @keyframes cardEnter {
-            from { opacity: 0; transform: translateX(-50px) rotate(-3deg); }
-            to { opacity: 1; transform: translateX(0) rotate(0deg); }
+            from { opacity: 0; transform: scale(0.95) translateY(40px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         .hidden { display: none !important; }
-
-        /* UTILITY */
         #status-msg { text-align: center; margin-top: 15px; font-size: 0.9rem; min-height: 1.2em; color: var(--accent-red); }
     </style>
 </head>
 <body>
 
-    <!-- 1. CONFIG PANEL (Initial Setup) -->
-    <div id="config-panel" class="hidden">
-        <h2>Peculiar Setup Wizard</h2>
-        <p>You are hosting this via GitHub. Paste your <strong>Firebase Config Object</strong> (the code snippet that looks like JSON) below to activate the "Loop".</p>
-        <textarea id="config-input" placeholder='{
-  "apiKey": "AIza...",
-  "authDomain": "...",
-  "projectId": "...",
-  ...
-}'></textarea>
-        <button id="save-config">ACTIVATE CONNECTION</button>
-    </div>
-
-    <!-- 2. AUDIENCE SUBMISSION VIEW -->
+    <!-- AUDIENCE SUBMISSION VIEW -->
     <div id="submission-view" class="submission-container hidden">
         <h1>A Home for the Peculiar</h1>
         <span class="sub-header">Submit your inquiry to the panel</span>
@@ -174,65 +147,39 @@
         <div id="status-msg"></div>
     </div>
 
-    <!-- 3. OBS OVERLAY VIEW -->
-    <div id="qa-container" class="hidden">
-        <!-- Live questions appear here -->
-    </div>
+    <!-- OBS / PROJECTOR OVERLAY VIEW -->
+    <div id="qa-container" class="hidden"></div>
 
-    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const CONFIG_KEY = 'peculiar_qa_config';
-        const APP_COLLECTION_ID = 'peculiar_seminar_prod'; // Unique ID for your seminar
-        
-        // Detect Mode
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTjoy3Kvc3L5Fl6XIy3lq-L8BFMOY77gM",
+            authDomain: "missperi.firebaseapp.com",
+            projectId: "missperi",
+            storageBucket: "missperi.firebasestorage.app",
+            messagingSenderId: "825548876752",
+            appId: "1:825548876752:web:e2f64e3d688e147040a7d5",
+            measurementId: "G-F3KVKSW3P3"
+        };
+
+        const APP_COLLECTION_ID = 'peculiar_app';
         const params = new URLSearchParams(window.location.search);
         const isOverlay = params.get('display') === 'true';
 
-        // Load Config
-        let config = null;
-        const saved = localStorage.getItem(CONFIG_KEY);
-        if (saved) {
-            try { config = JSON.parse(saved); } catch(e) { localStorage.removeItem(CONFIG_KEY); }
-        }
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        if (!config) {
-            document.getElementById('config-panel').classList.remove('hidden');
-            document.getElementById('save-config').onclick = () => {
-                const val = document.getElementById('config-input').value.trim();
-                try {
-                    const parsed = JSON.parse(val);
-                    localStorage.setItem(CONFIG_KEY, JSON.stringify(parsed));
-                    window.location.reload();
-                } catch(e) { alert("Invalid JSON format. Please copy the exact object from Firebase console."); }
-            };
-        } else {
-            runApp(config);
-        }
-
-        async function runApp(fbConfig) {
-            try {
-                const app = initializeApp(fbConfig);
-                const auth = getAuth(app);
-                const db = getFirestore(app);
-
-                // Authenticate
-                const userCred = await signInAnonymously(auth);
-                const user = userCred.user;
-
-                if (isOverlay) {
-                    setupOverlay(db);
-                } else {
-                    setupSubmission(db, user.uid);
-                }
-            } catch (err) {
-                console.error("App Launch Failed:", err);
-                alert("Connection failed. Check your Firebase config and console for errors.");
+        signInAnonymously(auth).then((userCred) => {
+            if (isOverlay) {
+                setupOverlay(db);
+            } else {
+                setupSubmission(db, userCred.user.uid);
             }
-        }
+        }).catch(err => console.error("Firebase Auth Error:", err));
 
         function setupSubmission(db, uid) {
             document.getElementById('submission-view').classList.remove('hidden');
@@ -243,13 +190,10 @@
             btn.onclick = async () => {
                 const text = input.value.trim();
                 if (!text) return;
-
                 btn.disabled = true;
                 status.innerText = "Transmitting...";
-
                 try {
-                    // Path follows Rule 1 for public sharing
-                    await addDoc(collection(db, 'artifacts', 'peculiar-app', 'public', 'data', 'questions'), {
+                    await addDoc(collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions'), {
                         text: text,
                         timestamp: serverTimestamp(),
                         author: uid
@@ -258,8 +202,7 @@
                     status.innerText = "Sent successfully into the loop.";
                     setTimeout(() => status.innerText = "", 4000);
                 } catch (e) {
-                    status.innerText = "Transmission Error. Try again.";
-                    console.error(e);
+                    status.innerText = "Transmission Error.";
                 } finally {
                     btn.disabled = false;
                 }
@@ -271,27 +214,22 @@
             const container = document.getElementById('qa-container');
             container.classList.remove('hidden');
 
-            const q = collection(db, 'artifacts', 'peculiar-app', 'public', 'data', 'questions');
-            
-            // Real-time listener
+            const q = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
             onSnapshot(q, (snapshot) => {
                 const items = snapshot.docs
                     .map(doc => doc.data())
                     .filter(d => d.timestamp)
                     .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
-                    .slice(0, 3); // Keep only the latest 3 on screen
+                    .slice(0, 10); // 10 is enough for a clean 2-column projector view
 
                 container.innerHTML = "";
                 items.forEach(data => {
                     const card = document.createElement('div');
                     card.className = 'question-card';
-                    card.innerHTML = `
-                        <div class="card-label">Incoming Inquiry</div>
-                        <p class="question-text">${escape(data.text)}</p>
-                    `;
+                    card.innerHTML = `<div class="card-label">Incoming Inquiry</div><p class="question-text">${escape(data.text)}</p>`;
                     container.appendChild(card);
                 });
-            }, (err) => console.error("Overlay stream error:", err));
+            });
         }
 
         function escape(html) {
