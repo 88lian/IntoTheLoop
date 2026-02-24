@@ -308,13 +308,6 @@
 
         <!-- Identity Options -->
         <div class="identity-header">
-            <label class="input-label">Identity Preferences</label>
-            
-            <label class="anonymous-control" id="anon-label">
-                <input type="checkbox" id="anon-toggle">
-                <span>Remain Anonymous</span>
-            </label>
-
             <div id="identity-fields">
                 <div class="input-group">
                     <label class="input-label" for="user-nickname">Nickname</label>
@@ -326,6 +319,11 @@
                     <input type="text" id="user-course" class="modern-field" placeholder="e.g. BS Arch - 3rd Year">
                 </div>
             </div>
+
+            <label class="anonymous-control" id="anon-label">
+                <input type="checkbox" id="anon-toggle">
+                <span>Remain Anonymous</span>
+            </label>
         </div>
 
         <button id="submit-btn" class="action-btn">TRANSMIT INTO THE LOOP</button>
@@ -372,6 +370,21 @@
         const IS_ADMIN = params.get('admin') === 'true';
         const IS_DISPLAY = params.get('display') === 'true';
 
+        const PECULIAR_NAMES = [
+            "The Invisible Boy",
+            "The Girl with the Bees",
+            "The Floater",
+            "The Pyrotechnic",
+            "The Strongest Girl",
+            "The Shadow Manipulator",
+            "The Prophetic Dreamer",
+            "The Time Loop Sentinel",
+            "The Bone Sculptor",
+            "The Animal Whisperer",
+            "The Plant Grower",
+            "The Master of Puppets"
+        ];
+
         const escapeHTML = (str) => {
             const p = document.createElement('p');
             p.textContent = str || "";
@@ -409,11 +422,9 @@
                     identityFields.style.opacity = "0";
                     identityFields.style.transform = "translateY(-10px) scaleY(0.95)";
                     identityFields.style.pointerEvents = "none";
-                    // Brief delay to hide after fade
                     setTimeout(() => { if(anonToggle.checked) identityFields.style.display = "none"; }, 400);
                 } else {
                     identityFields.style.display = "block";
-                    // Force reflow
                     void identityFields.offsetWidth;
                     identityFields.style.opacity = "1";
                     identityFields.style.transform = "translateY(0) scaleY(1)";
@@ -428,20 +439,25 @@
                 btn.disabled = true;
                 status.innerText = "Transmitting to the Loop...";
                 
+                let assignedName = nicknameInput.value.trim() || "A Guest";
+                if (anonToggle.checked) {
+                    assignedName = PECULIAR_NAMES[Math.floor(Math.random() * PECULIAR_NAMES.length)];
+                }
+                
                 const payload = {
                     text,
                     timestamp: serverTimestamp(),
                     authorId: uid,
                     visible: false,
                     isAnonymous: anonToggle.checked,
-                    nickname: anonToggle.checked ? "Anonymous" : nicknameInput.value.trim(),
+                    nickname: assignedName,
                     course: anonToggle.checked ? "" : courseInput.value.trim()
                 };
 
                 try {
                     await addDoc(collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions'), payload);
                     input.value = "";
-                    status.innerText = "The inquiry has been received.";
+                    status.innerText = `The inquiry was sent by ${assignedName}.`;
                     setTimeout(() => status.innerText = "", 4000);
                 } catch (e) {
                     status.innerText = "The Loop is unstable. Try again.";
@@ -474,7 +490,7 @@
                 items.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    const authorStr = item.isAnonymous ? "Anonymous" : `${item.nickname || 'Unknown'} (${item.course || 'N/A'})`;
+                    const authorStr = item.isAnonymous ? `[${item.nickname}]` : `${item.nickname || 'Unknown'} (${item.course || 'N/A'})`;
                     card.innerHTML = `
                         <div style="flex:1; padding-right:20px;">
                             <small style="color:var(--accent-red)">FROM: ${escapeHTML(authorStr)}</small>
@@ -534,7 +550,7 @@
                         el.dataset.id = data.id;
                         el.className = 'question-card';
                         
-                        const authorInfo = data.isAnonymous ? "An Anonymous Soul" : `From: ${data.nickname} (${data.course})`;
+                        const authorInfo = data.isAnonymous ? `From: ${data.nickname}` : `From: ${data.nickname} (${data.course})`;
                         
                         el.innerHTML = `
                             <div class="card-label">The Inquiry</div>
