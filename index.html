@@ -111,6 +111,12 @@
             border-left: 10px solid var(--accent-red); 
             clip-path: polygon(0% 0%, 100% 1%, 99% 99%, 1% 100%);
             break-inside: avoid;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        /* Disappearing state */
+        .question-card.exiting {
+            animation: cardExit 0.6s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
         }
 
         .card-label { 
@@ -146,7 +152,7 @@
             align-items: center;
             border: 1px solid #333;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            animation: cardEnter 0.4s ease-out;
+            animation: cardEnterAdmin 0.4s ease-out;
         }
         .admin-controls { display: flex; gap: 12px; }
         .toggle-btn {
@@ -164,7 +170,17 @@
         .btn-delete { background: #e74c3c; color: white; }
 
         @keyframes cardEnter {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: scale(0.9) translateY(40px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes cardExit {
+            from { opacity: 1; transform: scale(1) translateY(0); }
+            to { opacity: 0; transform: scale(0.9) translateY(-40px); }
+        }
+
+        @keyframes cardEnterAdmin {
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -336,19 +352,47 @@
             view.classList.remove('hidden');
 
             const q = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
+            
+            // Local state to manage transition tracking
+            let activeQuestionIds = new Set();
+
             onSnapshot(q, (snapshot) => {
-                const items = snapshot.docs
-                    .map(doc => doc.data())
+                const currentData = snapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
                     .filter(d => d.timestamp && d.visible === true)
                     .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
                     .slice(0, 10);
 
-                container.innerHTML = "";
-                items.forEach(data => {
-                    const card = document.createElement('div');
-                    card.className = 'question-card';
-                    card.innerHTML = `<div class="card-label">Incoming Inquiry</div><p class="question-text">${escape(data.text)}</p>`;
-                    container.appendChild(card);
+                const currentIds = new Set(currentData.map(d => d.id));
+
+                // 1. Identify items that need to EXIT
+                const exitingIds = [...activeQuestionIds].filter(id => !currentIds.has(id));
+
+                exitingIds.forEach(id => {
+                    const el = document.getElementById(`q-${id}`);
+                    if (el) {
+                        el.classList.add('exiting');
+                        // Remove from DOM after animation completes
+                        setTimeout(() => {
+                            if (el.parentNode) el.parentNode.removeChild(el);
+                        }, 550);
+                    }
+                    activeQuestionIds.delete(id);
+                });
+
+                // 2. Identify items that need to ENTER or REMAIN
+                currentData.forEach(data => {
+                    if (!activeQuestionIds.has(data.id)) {
+                        // Create and prepend new card
+                        const card = document.createElement('div');
+                        card.id = `q-${data.id}`;
+                        card.className = 'question-card';
+                        card.innerHTML = `<div class="card-label">Incoming Inquiry</div><p class="question-text">${escape(data.text)}</p>`;
+                        
+                        // Find position or just prepend
+                        container.prepend(card);
+                        activeQuestionIds.add(data.id);
+                    }
                 });
             });
         }
