@@ -104,15 +104,16 @@
         button.action-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #4a0000; }
         button.action-btn:disabled { background: #666 !important; cursor: not-allowed; box-shadow: none; transform: none; }
 
-        /* LIVE OVERLAY - SPOTLIGHT PILE */
+        /* LIVE OVERLAY - ORGANIZED PILE */
         #qa-container {
             position: relative;
             max-width: 900px;
             margin: 50px auto;
             height: 90vh;
-            perspective: 2500px; /* Stronger perspective for depth */
+            perspective: 2500px;
             display: flex;
             justify-content: center;
+            align-items: flex-start; /* Start from top to control stacking flow */
         }
 
         .question-card {
@@ -121,15 +122,16 @@
             background-color: var(--paper-color);
             padding: 35px 45px; 
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
-            box-shadow: 15px 15px 40px rgba(0,0,0,0.4);
-            border-left: 15px solid var(--accent-red); 
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.3);
+            border-left: 12px solid var(--accent-red); 
             clip-path: polygon(0.5% 0%, 100% 0.5%, 99.5% 99.5%, 0% 100%);
             
             transition: 
                 transform var(--transition-speed) var(--ease),
                 opacity var(--transition-speed) ease,
                 filter var(--transition-speed) ease,
-                background-color var(--transition-speed) ease;
+                background-color var(--transition-speed) ease,
+                box-shadow var(--transition-speed) ease;
             
             pointer-events: none;
             will-change: transform, opacity;
@@ -137,70 +139,80 @@
             
             /* Initial Entry State */
             opacity: 0;
-            transform: translateY(400px) rotateX(-45deg) scale(0.5);
-            filter: blur(15px);
+            transform: translateY(500px) rotateX(-60deg) scale(0.4);
+            filter: blur(20px);
             z-index: 100;
         }
 
-        /* LOGIC FOR PILING VIA DATA ATTRIBUTES */
+        /* ORGANIZED STACKING LOGIC */
         
-        /* The Spotlight (Main) Question */
+        /* The Spotlight (Main) Question - High focal point */
         .question-card[data-index="0"] {
             opacity: 1;
-            transform: translateY(0) rotateX(0deg) scale(1.15) !important;
+            transform: translateY(0) rotateX(0deg) scale(1) translateZ(50px) !important;
             filter: blur(0);
-            z-index: 50;
+            z-index: 60;
             background-color: var(--paper-color);
-            box-shadow: 20px 30px 60px rgba(0,0,0,0.5);
+            box-shadow: 0 40px 100px rgba(0,0,0,0.6);
         }
 
-        /* Piled Questions (Previous inquiries) */
+        /* Piled Questions - Aligned neatly below and behind */
         .question-card:not([data-index="0"]) {
             opacity: 1;
-            /* Every card after the first moves down, shrinks, and pushes into the distance */
+            /* Step-down translateY: 150px for the first gap, then 90px per card.
+               This ensures text of cards behind is visible. 
+            */
             transform: 
-                translateY(calc(var(--stack-index) * 80px + 160px)) 
-                translateZ(calc(var(--stack-index) * -80px)) 
-                rotateX(calc(var(--stack-index) * -5deg))
-                scale(calc(1 - (var(--stack-index) * 0.1)));
-            filter: blur(calc(var(--stack-index) * 1.5px));
-            z-index: calc(40 - var(--stack-index));
-            background-color: #cdc7b8; /* Darker paper to show it's in the background */
-            opacity: calc(1 - (var(--stack-index) * 0.2));
+                translateY(calc(var(--stack-index) * 110px + 60px)) 
+                translateZ(calc(var(--stack-index) * -120px)) 
+                rotateX(calc(var(--stack-index) * -8deg))
+                scale(calc(1 - (var(--stack-index) * 0.08)));
+            
+            filter: blur(calc(var(--stack-index) * 2px));
+            z-index: calc(50 - var(--stack-index));
+            background-color: #d8d1c0; /* Subtle darkening for depth */
+            opacity: calc(1 - (var(--stack-index) * 0.15));
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
         }
 
         /* Hidden/Exit state */
         .question-card.exiting {
             opacity: 0;
-            transform: translateY(-300px) rotateX(45deg) scale(0.7) !important;
-            filter: blur(20px);
+            transform: translateY(-400px) rotateX(60deg) scale(0.6) translateZ(100px) !important;
+            filter: blur(30px);
         }
 
         .card-label { 
-            font-size: 0.85rem; 
+            font-size: 0.8rem; 
             color: var(--accent-red); 
             text-transform: uppercase; 
-            letter-spacing: 6px;
-            margin-bottom: 15px;
+            letter-spacing: 5px;
+            margin-bottom: 12px;
             font-weight: bold;
             display: flex;
             align-items: center;
-            opacity: 0.6;
+            opacity: 0.7;
         }
-        .card-label::after { content: ""; flex: 1; height: 1px; background: rgba(139, 0, 0, 0.2); margin-left: 20px; }
+        .card-label::after { content: ""; flex: 1; height: 1px; background: rgba(139, 0, 0, 0.15); margin-left: 15px; }
 
         .question-text { 
-            font-size: 2.1rem; /* Slightly larger for the spotlight */
+            font-size: 2rem;
             color: var(--ink-color); 
             margin: 0; 
-            line-height: 1.4;
+            line-height: 1.3;
             font-family: 'Special Elite', serif;
             word-wrap: break-word;
+            max-height: 3.9em; /* Limit height to maintain organized stack */
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
         }
 
-        /* Adjust text size for piled cards so they don't look cramped */
+        /* Piled cards text is slightly smaller to signify history */
         .question-card:not([data-index="0"]) .question-text {
-            font-size: 1.6rem;
+            font-size: 1.5rem;
+            opacity: 0.8;
         }
 
         /* ADMIN INTERFACE */
@@ -409,12 +421,11 @@
                     .map(d => ({ id: d.id, ...d.data() }))
                     .filter(d => d.timestamp && d.visible === true)
                     .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
-                    .slice(0, 4); // Keep pile small (4) for maximum impact
+                    .slice(0, 4); 
 
                 const activeIds = new Set(activeData.map(d => d.id));
                 const existingElements = Array.from(container.querySelectorAll('.question-card'));
                 
-                // Remove cards no longer in the spotlight
                 existingElements.forEach(el => {
                     const id = el.dataset.id;
                     if (!activeIds.has(id) && !el.classList.contains('exiting')) {
@@ -438,17 +449,15 @@
                         container.appendChild(el);
                     }
 
-                    // Forcing a layout reflow for the new indices
                     requestAnimationFrame(() => {
                         el.setAttribute('data-index', index);
                         el.style.setProperty('--stack-index', index);
                         
-                        // Update labels for visual flavor
                         const label = el.querySelector('.card-label');
                         if (index === 0) {
                             label.innerText = "The Primary Inquiry";
                         } else {
-                            label.innerText = `Previous inquiry [${index}]`;
+                            label.innerText = `Peculiar History [${index}]`;
                         }
                     });
                 });
