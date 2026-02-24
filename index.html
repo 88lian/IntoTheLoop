@@ -90,35 +90,45 @@
 
         /* LIVE OVERLAY - PROJECTOR */
         #qa-container {
-            width: 100%;
-            column-count: 2; 
-            column-gap: 40px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
             max-width: 1600px;
             margin: 0 auto;
+            align-items: flex-start;
         }
-        @media (max-width: 1000px) { #qa-container { column-count: 1; } }
 
         .question-card {
-            display: inline-block;
-            width: 100%;
-            margin-bottom: 40px; 
+            width: calc(50% - 20px); /* 2 columns */
             background-color: var(--paper-color);
             padding: 40px; 
             position: relative;
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
             box-shadow: 12px 12px 30px rgba(0,0,0,0.5);
-            animation: cardEnter 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
             border-left: 10px solid var(--accent-red); 
             clip-path: polygon(0% 0%, 100% 1%, 99% 99%, 1% 100%);
-            break-inside: avoid;
-            transition: opacity 0.6s ease, transform 0.6s ease;
+            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
             pointer-events: none;
+            will-change: transform, opacity;
         }
 
-        /* Disappearing state */
-        .question-card.exiting {
-            animation: cardExit 0.7s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards !important;
+        @media (max-width: 1000px) { .question-card { width: 100%; } }
+
+        /* Animation States */
+        .card-entering {
             opacity: 0;
+            transform: scale(0.8) translateY(50px);
+        }
+
+        .card-active {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        .question-card.exiting {
+            opacity: 0 !important;
+            transform: scale(0.8) translateY(-100px) !important;
+            z-index: 0;
         }
 
         .card-label { 
@@ -170,16 +180,6 @@
         .btn-show { background: #2ecc71; color: white; }
         .btn-hide { background: #e67e22; color: white; }
         .btn-delete { background: #e74c3c; color: white; }
-
-        @keyframes cardEnter {
-            from { opacity: 0; transform: scale(0.8) translateY(100px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        @keyframes cardExit {
-            0% { opacity: 1; transform: scale(1) translateY(0); }
-            100% { opacity: 0; transform: scale(0.8) translateY(-100px); }
-        }
 
         @keyframes cardEnterAdmin {
             from { opacity: 0; transform: translateY(10px); }
@@ -354,8 +354,6 @@
             view.classList.remove('hidden');
 
             const q = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
-            
-            // Track currently rendered IDs to prevent "instant popping"
             let activeQuestionIds = new Set();
 
             onSnapshot(q, (snapshot) => {
@@ -367,33 +365,70 @@
 
                 const currentIds = new Set(currentData.map(d => d.id));
 
-                // EXIT ANIMATION LOGIC
+                // 1. Record current positions of all existing elements (FLIP Technique)
+                const firstPositions = {};
+                activeQuestionIds.forEach(id => {
+                    const el = document.getElementById(`q-${id}`);
+                    if (el) firstPositions[id] = el.getBoundingClientRect();
+                });
+
+                // 2. Handle EXITING items
                 activeQuestionIds.forEach(id => {
                     if (!currentIds.has(id)) {
                         const el = document.getElementById(`q-${id}`);
                         if (el && !el.classList.contains('exiting')) {
                             el.classList.add('exiting');
-                            // Delay removal until animation ends
                             setTimeout(() => {
                                 if (el && el.parentNode) el.remove();
                                 activeQuestionIds.delete(id);
-                            }, 700);
+                            }, 800);
                         }
                     }
                 });
 
-                // ENTER ANIMATION LOGIC
+                // 3. Handle ENTERING items
                 currentData.forEach(data => {
                     if (!activeQuestionIds.has(data.id)) {
                         activeQuestionIds.add(data.id);
                         const card = document.createElement('div');
                         card.id = `q-${data.id}`;
-                        card.className = 'question-card';
+                        card.className = 'question-card card-entering';
                         card.innerHTML = `<div class="card-label">Incoming Inquiry</div><p class="question-text">${escape(data.text)}</p>`;
                         
-                        // Add to top of the list
-                        container.insertBefore(card, container.firstChild);
+                        // Insert based on sort order
+                        container.prepend(card);
+                        
+                        // Trigger entry animation in next frame
+                        requestAnimationFrame(() => {
+                            card.classList.remove('card-entering');
+                            card.classList.add('card-active');
+                        });
                     }
+                });
+
+                // 4. Animate layout changes for remaining elements
+                requestAnimationFrame(() => {
+                    currentIds.forEach(id => {
+                        const el = document.getElementById(`q-${id}`);
+                        if (el && firstPositions[id]) {
+                            const lastPos = el.getBoundingClientRect();
+                            const deltaY = firstPositions[id].top - lastPos.top;
+                            const deltaX = firstPositions[id].left - lastPos.left;
+
+                            if (deltaY !== 0 || deltaX !== 0) {
+                                // Undo the change instantly
+                                el.style.transition = 'none';
+                                el.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+                                
+                                // Force reflow
+                                el.offsetHeight;
+
+                                // Transition back to original (0,0)
+                                el.style.transition = 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease';
+                                el.style.transform = '';
+                            }
+                        }
+                    });
                 });
             });
         }
