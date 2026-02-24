@@ -91,60 +91,64 @@
         /* LIVE OVERLAY - PROJECTOR */
         #qa-container {
             display: flex;
-            flex-wrap: wrap;
-            gap: 40px;
-            max-width: 1600px;
+            flex-direction: column; /* Vertical stack ensures smoother sliding logic */
+            gap: 30px;
+            max-width: 1000px;
             margin: 0 auto;
-            align-items: flex-start;
+            perspective: 1000px;
         }
 
         .question-card {
-            width: calc(50% - 20px); /* 2 columns */
+            width: 100%;
             background-color: var(--paper-color);
-            padding: 40px; 
+            padding: 35px 45px; 
             position: relative;
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
-            box-shadow: 12px 12px 30px rgba(0,0,0,0.5);
-            border-left: 10px solid var(--accent-red); 
-            clip-path: polygon(0% 0%, 100% 1%, 99% 99%, 1% 100%);
-            transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 8px 8px 25px rgba(0,0,0,0.4);
+            border-left: 12px solid var(--accent-red); 
+            clip-path: polygon(0% 0%, 100% 1%, 99.5% 99%, 0.5% 100%);
+            transition: opacity 1s cubic-bezier(0.23, 1, 0.32, 1), transform 1s cubic-bezier(0.23, 1, 0.32, 1);
             pointer-events: none;
             will-change: transform, opacity;
+            transform-origin: center top;
         }
 
-        @media (max-width: 1000px) { .question-card { width: 100%; } }
-
-        /* Animation States */
+        /* Entry State */
         .card-entering {
             opacity: 0;
-            transform: scale(0.8) translateY(50px);
+            transform: translateY(40px) rotateX(-15deg) scale(0.95);
         }
 
+        /* Active State */
         .card-active {
             opacity: 1;
-            transform: scale(1) translateY(0);
+            transform: translateY(0) rotateX(0deg) scale(1);
         }
 
+        /* Exit State */
         .question-card.exiting {
             opacity: 0 !important;
-            transform: scale(0.8) translateY(-100px) !important;
-            z-index: 0;
+            transform: translateY(-40px) rotateX(15deg) scale(0.9) !important;
+            margin-bottom: -150px; /* Collapse space smoothly */
+            pointer-events: none;
+            z-index: -1;
         }
 
         .card-label { 
-            font-size: 1rem; 
+            font-size: 0.9rem; 
             color: var(--accent-red); 
             text-transform: uppercase; 
-            letter-spacing: 4px;
-            margin-bottom: 15px;
+            letter-spacing: 5px;
+            margin-bottom: 12px;
             font-weight: bold;
             display: flex;
             align-items: center;
+            opacity: 0.7;
         }
-        .card-label::after { content: ""; flex: 1; height: 2px; background: rgba(139, 0, 0, 0.2); margin-left: 15px; }
+        .card-label::after { content: ""; flex: 1; height: 1px; background: rgba(139, 0, 0, 0.3); margin-left: 15px; }
 
         .question-text { 
-            font-size: 2rem; 
+            font-size: 1.8rem; 
             color: var(--ink-color); 
             margin: 0; 
             line-height: 1.4;
@@ -249,11 +253,9 @@
         const APP_COLLECTION_ID = 'peculiar_app';
         const params = new URLSearchParams(window.location.search);
         
-        // CRITICAL MODE DETECTION
         const IS_ADMIN = params.get('admin') === 'true';
         const IS_DISPLAY = params.get('display') === 'true';
 
-        // Initialize
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -365,28 +367,31 @@
 
                 const currentIds = new Set(currentData.map(d => d.id));
 
-                // 1. Record current positions of all existing elements (FLIP Technique)
+                // 1. Snapshot First Positions for FLIP
                 const firstPositions = {};
                 activeQuestionIds.forEach(id => {
                     const el = document.getElementById(`q-${id}`);
-                    if (el) firstPositions[id] = el.getBoundingClientRect();
+                    if (el && !el.classList.contains('exiting')) {
+                        firstPositions[id] = el.getBoundingClientRect();
+                    }
                 });
 
-                // 2. Handle EXITING items
+                // 2. Identify and flag exiting elements
                 activeQuestionIds.forEach(id => {
                     if (!currentIds.has(id)) {
                         const el = document.getElementById(`q-${id}`);
                         if (el && !el.classList.contains('exiting')) {
                             el.classList.add('exiting');
+                            // We don't remove from activeQuestionIds yet to prevent re-rendering logic issues
                             setTimeout(() => {
                                 if (el && el.parentNode) el.remove();
                                 activeQuestionIds.delete(id);
-                            }, 800);
+                            }, 1000); // Wait for transition
                         }
                     }
                 });
 
-                // 3. Handle ENTERING items
+                // 3. Create and append new elements
                 currentData.forEach(data => {
                     if (!activeQuestionIds.has(data.id)) {
                         activeQuestionIds.add(data.id);
@@ -395,10 +400,10 @@
                         card.className = 'question-card card-entering';
                         card.innerHTML = `<div class="card-label">Incoming Inquiry</div><p class="question-text">${escape(data.text)}</p>`;
                         
-                        // Insert based on sort order
+                        // We always prepend since we sort newest first
                         container.prepend(card);
                         
-                        // Trigger entry animation in next frame
+                        // Smallest possible delay to trigger CSS transition
                         requestAnimationFrame(() => {
                             card.classList.remove('card-entering');
                             card.classList.add('card-active');
@@ -406,26 +411,25 @@
                     }
                 });
 
-                // 4. Animate layout changes for remaining elements
+                // 4. FLIP: Play animation for elements that moved
                 requestAnimationFrame(() => {
                     currentIds.forEach(id => {
                         const el = document.getElementById(`q-${id}`);
                         if (el && firstPositions[id]) {
                             const lastPos = el.getBoundingClientRect();
                             const deltaY = firstPositions[id].top - lastPos.top;
-                            const deltaX = firstPositions[id].left - lastPos.left;
 
-                            if (deltaY !== 0 || deltaX !== 0) {
-                                // Undo the change instantly
+                            if (Math.abs(deltaY) > 0.5) { // Threshold to prevent micro-snapping
+                                // Invert
                                 el.style.transition = 'none';
-                                el.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+                                el.style.transform = `translateY(${deltaY}px)`;
                                 
-                                // Force reflow
+                                // Reflow
                                 el.offsetHeight;
 
-                                // Transition back to original (0,0)
-                                el.style.transition = 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.8s ease';
-                                el.style.transform = '';
+                                // Play
+                                el.style.transition = 'transform 1s cubic-bezier(0.23, 1, 0.32, 1), opacity 1s ease';
+                                el.style.transform = 'translateY(0)';
                             }
                         }
                     });
