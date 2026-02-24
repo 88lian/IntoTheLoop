@@ -39,7 +39,7 @@
         /* ATMOSPHERIC AUDIENCE BACKGROUND */
         body:not(.admin-mode):not(.obs-overlay) {
             background: 
-                linear-gradient(rgba(18, 18, 18, 0.85), rgba(18, 18, 18, 0.95)),
+                radial-gradient(circle at 50% 50%, rgba(139, 0, 0, 0.1) 0%, rgba(18, 18, 18, 1) 100%),
                 url('https://www.transparenttextures.com/patterns/dark-matter.png'),
                 url('https://images.unsplash.com/photo-1501139083538-0139583c060f?q=80&w=2070&auto=format&fit=crop');
             background-size: cover;
@@ -54,37 +54,58 @@
             background-image: radial-gradient(circle at center, #1a1c22 0%, #0f1115 100%);
         }
 
-        /* AUDIENCE SUBMISSION UI */
+        /* MODERNIZED SUBMISSION UI */
         .submission-container {
-            max-width: 550px;
-            margin: 60px auto;
+            max-width: 600px;
+            margin: 40px auto;
             background: var(--paper-color);
             padding: 50px 40px;
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
-            box-shadow: 0 0 50px rgba(0,0,0,0.5), 20px 20px 60px rgba(0,0,0,0.9);
-            clip-path: polygon(1% 1%, 99% 0%, 100% 98%, 2% 100%, 0% 95%);
+            box-shadow: 0 0 80px rgba(0,0,0,0.8), 20px 20px 60px rgba(0,0,0,0.9);
+            clip-path: polygon(1% 1%, 99% 0.5%, 100% 98.5%, 1.5% 100%, 0% 95%);
             transform: rotate(-0.5deg);
             position: relative;
+            border: 1px solid rgba(0,0,0,0.1);
         }
 
-        h1 { font-family: 'IM Fell English', serif; color: var(--accent-red); text-align: center; font-size: 2.5rem; margin: 0 0 10px 0; }
-        .sub-header { text-align: center; font-style: italic; opacity: 0.8; margin-bottom: 30px; display: block; letter-spacing: 1px; }
+        h1 { font-family: 'IM Fell English', serif; color: var(--accent-red); text-align: center; font-size: 2.8rem; margin: 0 0 5px 0; letter-spacing: -1px; }
+        .sub-header { text-align: center; font-style: italic; opacity: 0.8; margin-bottom: 35px; display: block; letter-spacing: 1px; font-size: 0.9rem; }
         
-        textarea#question-input {
+        /* Modern Input Styling */
+        .input-group { margin-bottom: 25px; position: relative; }
+        .input-label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-red); margin-bottom: 8px; font-weight: bold; }
+        
+        .modern-field {
             width: 100%;
-            height: 180px;
-            background: transparent;
+            background: rgba(0,0,0,0.03);
             border: none;
-            border-bottom: 1px dashed rgba(0,0,0,0.3);
+            border-bottom: 2px solid rgba(0,0,0,0.1);
             font-family: 'Special Elite', serif;
-            font-size: 1.25rem;
-            line-height: 1.6;
+            font-size: 1.1rem;
+            padding: 12px 10px;
             outline: none;
-            padding: 10px;
-            display: block;
-            resize: none;
             color: var(--ink-color);
+            transition: border-color 0.3s ease;
         }
+        .modern-field:focus { border-bottom-color: var(--accent-red); background: rgba(0,0,0,0.05); }
+
+        textarea.modern-field { height: 140px; resize: none; line-height: 1.6; }
+
+        /* Anonymous Toggle */
+        .anonymous-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            cursor: pointer;
+            user-select: none;
+            padding: 10px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.02);
+            transition: background 0.2s;
+        }
+        .anonymous-control:hover { background: rgba(0,0,0,0.05); }
+        .anonymous-control input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-red); }
 
         button.action-btn {
             background: var(--accent-red);
@@ -95,10 +116,11 @@
             font-size: 1.2rem;
             cursor: pointer;
             width: 100%;
-            margin-top: 40px;
+            margin-top: 20px;
             box-shadow: 0 6px 0 #4a0000;
             transition: all 0.2s;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
         }
         button.action-btn:hover { background: #a00000; transform: translateY(-2px); }
         button.action-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #4a0000; }
@@ -125,7 +147,6 @@
             border-left: 12px solid var(--accent-red); 
             clip-path: polygon(0.5% 0.5%, 99.5% 0%, 100% 99.5%, 0.5% 100%);
             
-            /* Unified transition for all state changes */
             transition: 
                 transform var(--transition-speed) var(--ease),
                 opacity var(--transition-speed) ease,
@@ -137,14 +158,12 @@
             will-change: transform, opacity;
             transform-origin: center center;
             
-            /* INITIAL HIDDEN ENTRY STATE */
             opacity: 0;
             transform: translateY(100vh) rotateX(-45deg) scale(0.6) translateZ(-500px);
             filter: blur(20px);
             z-index: 10;
         }
 
-        /* THE SPOTLIGHT (PRIMARY) */
         .question-card[data-index="0"] {
             opacity: 1;
             transform: translateY(0) rotateX(0deg) scale(1.1) translateZ(0);
@@ -154,7 +173,6 @@
             background-color: var(--paper-color);
         }
 
-        /* THE HISTORY STACK (PILED BEHIND) */
         .question-card[data-index]:not([data-index="0"]) {
             opacity: 1;
             transform: 
@@ -165,12 +183,11 @@
             
             filter: blur(calc(var(--stack-index) * 2px));
             z-index: calc(90 - var(--stack-index));
-            background-color: #dcd6c5; /* Slightly aged appearance in history */
+            background-color: #dcd6c5;
             opacity: calc(1 - (var(--stack-index) * 0.2));
             box-shadow: 0 15px 40px rgba(0,0,0,0.3);
         }
 
-        /* DISCARDING (EXIT) */
         .question-card.exiting {
             opacity: 0 !important;
             transform: translateY(-500px) rotateX(60deg) scale(0.6) translateZ(400px) !important;
@@ -178,17 +195,27 @@
         }
 
         .card-label { 
-            font-size: 0.8rem; 
+            font-size: 0.75rem; 
             color: var(--accent-red); 
             text-transform: uppercase; 
-            letter-spacing: 5px;
-            margin-bottom: 12px;
+            letter-spacing: 4px;
+            margin-bottom: 8px;
             font-weight: bold;
             display: flex;
             align-items: center;
-            opacity: 0.7;
+            opacity: 0.8;
         }
         .card-label::after { content: ""; flex: 1; height: 1px; background: rgba(139, 0, 0, 0.15); margin-left: 15px; }
+
+        .author-meta {
+            font-style: italic;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            display: block;
+            color: rgba(0,0,0,0.6);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding-bottom: 5px;
+        }
 
         .question-text { 
             font-size: 2rem;
@@ -199,9 +226,7 @@
             word-wrap: break-word;
         }
 
-        .question-card:not([data-index="0"]) .question-text {
-            font-size: 1.5rem;
-        }
+        .question-card:not([data-index="0"]) .question-text { font-size: 1.5rem; }
 
         /* ADMIN INTERFACE */
         .admin-card {
@@ -257,10 +282,32 @@
 
     <!-- VIEW 1: SUBMISSION -->
     <div id="view-submission" class="submission-container hidden">
-        <h1>A Home for the Peculiar</h1>
+        <h1>The Peculiar Portal</h1>
         <span class="sub-header">Submit your inquiry to the loop</span>
-        <textarea id="question-input" placeholder="Type your inquiry here..."></textarea>
-        <button id="submit-btn" class="action-btn">SEND INTO THE LOOP</button>
+        
+        <div id="identity-fields">
+            <div class="input-group">
+                <label class="input-label" for="user-nickname">Nickname</label>
+                <input type="text" id="user-nickname" class="modern-field" placeholder="e.g. Victor, Millard, Enoch...">
+            </div>
+
+            <div class="input-group">
+                <label class="input-label" for="user-course">Course & Year Level</label>
+                <input type="text" id="user-course" class="modern-field" placeholder="e.g. BS Arch - 3rd Year">
+            </div>
+        </div>
+
+        <label class="anonymous-control">
+            <input type="checkbox" id="anon-toggle">
+            <span>Remain Anonymous</span>
+        </label>
+
+        <div class="input-group">
+            <label class="input-label" for="question-input">Your Inquiry</label>
+            <textarea id="question-input" class="modern-field" placeholder="What secrets shall we unravel today?"></textarea>
+        </div>
+
+        <button id="submit-btn" class="action-btn">TRANSMIT INTO THE LOOP</button>
         <div id="status-msg"></div>
     </div>
 
@@ -306,7 +353,7 @@
 
         const escapeHTML = (str) => {
             const p = document.createElement('p');
-            p.textContent = str;
+            p.textContent = str || "";
             return p.innerHTML;
         };
 
@@ -324,21 +371,38 @@
             const view = document.getElementById('view-submission');
             const btn = document.getElementById('submit-btn');
             const input = document.getElementById('question-input');
+            const nicknameInput = document.getElementById('user-nickname');
+            const courseInput = document.getElementById('user-course');
+            const anonToggle = document.getElementById('anon-toggle');
+            const identityFields = document.getElementById('identity-fields');
             const status = document.getElementById('status-msg');
+            
             view.classList.remove('hidden');
+
+            anonToggle.onchange = () => {
+                identityFields.style.opacity = anonToggle.checked ? "0.3" : "1";
+                identityFields.style.pointerEvents = anonToggle.checked ? "none" : "all";
+            };
 
             btn.onclick = async () => {
                 const text = input.value.trim();
                 if (!text) return;
+                
                 btn.disabled = true;
                 status.innerText = "Transmitting to the Loop...";
+                
+                const payload = {
+                    text,
+                    timestamp: serverTimestamp(),
+                    authorId: uid,
+                    visible: false,
+                    isAnonymous: anonToggle.checked,
+                    nickname: anonToggle.checked ? "Anonymous" : nicknameInput.value.trim(),
+                    course: anonToggle.checked ? "" : courseInput.value.trim()
+                };
+
                 try {
-                    await addDoc(collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions'), {
-                        text,
-                        timestamp: serverTimestamp(),
-                        author: uid,
-                        visible: false
-                    });
+                    await addDoc(collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions'), payload);
                     input.value = "";
                     status.innerText = "The inquiry has been received.";
                     setTimeout(() => status.innerText = "", 4000);
@@ -373,9 +437,11 @@
                 items.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
+                    const authorStr = item.isAnonymous ? "Anonymous" : `${item.nickname || 'Unknown'} (${item.course || 'N/A'})`;
                     card.innerHTML = `
                         <div style="flex:1; padding-right:20px;">
-                            <p style="margin:0; font-size:1.1rem; color:#fff;">${escapeHTML(item.text)}</p>
+                            <small style="color:var(--accent-red)">FROM: ${escapeHTML(authorStr)}</small>
+                            <p style="margin:5px 0 0 0; font-size:1.1rem; color:#fff;">${escapeHTML(item.text)}</p>
                         </div>
                         <div class="admin-controls">
                             <button class="toggle-btn ${item.visible ? 'btn-hide' : 'btn-show'}">
@@ -414,45 +480,39 @@
                 const activeIds = new Set(activeData.map(d => d.id));
                 const existingElements = Array.from(container.querySelectorAll('.question-card'));
                 
-                // --- 1. HANDLE EXITS ---
                 existingElements.forEach(el => {
                     if (!activeIds.has(el.dataset.id) && !el.classList.contains('exiting')) {
                         el.classList.add('exiting');
-                        el.removeAttribute('data-index'); // Remove stack logic to allow exit transform to take over
+                        el.removeAttribute('data-index');
                         setTimeout(() => el.remove(), 1500);
                     }
                 });
 
-                // --- 2. HANDLE UPDATES & ENTRIES ---
                 activeData.forEach((data, index) => {
                     let el = document.getElementById(`q-${data.id}`);
                     
                     if (!el) {
-                        // NEW ENTRY: Create in "Entry State" (defined in base CSS)
                         el = document.createElement('div');
                         el.id = `q-${data.id}`;
                         el.dataset.id = data.id;
                         el.className = 'question-card';
+                        
+                        const authorInfo = data.isAnonymous ? "An Anonymous Soul" : `From: ${data.nickname} (${data.course})`;
+                        
                         el.innerHTML = `
                             <div class="card-label">The Inquiry</div>
+                            <span class="author-meta">${escapeHTML(authorInfo)}</span>
                             <p class="question-text">${escapeHTML(data.text)}</p>
                         `;
                         container.appendChild(el);
-                        
-                        // Force a reflow before moving to target index to ensure entry animation plays
                         void el.offsetWidth; 
                     }
 
-                    // UPDATE POSITION: Apply target index and custom variable
                     el.setAttribute('data-index', index);
                     el.style.setProperty('--stack-index', index);
                     
                     const label = el.querySelector('.card-label');
-                    if (index === 0) {
-                        label.innerText = "The Primary Inquiry";
-                    } else {
-                        label.innerText = `Peculiar History [${index}]`;
-                    }
+                    label.innerText = (index === 0) ? "The Primary Inquiry" : `Peculiar History [${index}]`;
                 });
             });
         }
