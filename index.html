@@ -89,23 +89,38 @@
         }
         .modern-field:focus { border-bottom-color: var(--accent-red); background: rgba(0,0,0,0.05); }
 
-        textarea.modern-field { height: 140px; resize: none; line-height: 1.6; }
+        textarea.modern-field { height: 180px; resize: none; line-height: 1.6; }
+
+        /* Identity Section Styling */
+        .identity-header {
+            border-top: 1px dashed rgba(139, 0, 0, 0.2);
+            padding-top: 25px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
 
         /* Anonymous Toggle */
         .anonymous-control {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             cursor: pointer;
             user-select: none;
-            padding: 10px;
-            border-radius: 4px;
-            background: rgba(0,0,0,0.02);
-            transition: background 0.2s;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.03);
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
         }
-        .anonymous-control:hover { background: rgba(0,0,0,0.05); }
-        .anonymous-control input { width: 18px; height: 18px; cursor: pointer; accent-color: var(--accent-red); }
+        .anonymous-control:hover { background: rgba(0,0,0,0.06); }
+        .anonymous-control.active { border-color: var(--accent-red); background: rgba(139, 0, 0, 0.05); }
+        .anonymous-control input { width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent-red); }
+
+        #identity-fields {
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            transform-origin: top;
+        }
 
         button.action-btn {
             background: var(--accent-red);
@@ -116,7 +131,7 @@
             font-size: 1.2rem;
             cursor: pointer;
             width: 100%;
-            margin-top: 20px;
+            margin-top: 10px;
             box-shadow: 0 6px 0 #4a0000;
             transition: all 0.2s;
             letter-spacing: 3px;
@@ -285,26 +300,32 @@
         <h1>The Peculiar Portal</h1>
         <span class="sub-header">Submit your inquiry to the loop</span>
         
-        <div id="identity-fields">
-            <div class="input-group">
-                <label class="input-label" for="user-nickname">Nickname</label>
-                <input type="text" id="user-nickname" class="modern-field" placeholder="e.g. Victor, Millard, Enoch...">
-            </div>
-
-            <div class="input-group">
-                <label class="input-label" for="user-course">Course & Year Level</label>
-                <input type="text" id="user-course" class="modern-field" placeholder="e.g. BS Arch - 3rd Year">
-            </div>
-        </div>
-
-        <label class="anonymous-control">
-            <input type="checkbox" id="anon-toggle">
-            <span>Remain Anonymous</span>
-        </label>
-
+        <!-- Primary Focus: The Inquiry -->
         <div class="input-group">
             <label class="input-label" for="question-input">Your Inquiry</label>
             <textarea id="question-input" class="modern-field" placeholder="What secrets shall we unravel today?"></textarea>
+        </div>
+
+        <!-- Identity Options -->
+        <div class="identity-header">
+            <label class="input-label">Identity Preferences</label>
+            
+            <label class="anonymous-control" id="anon-label">
+                <input type="checkbox" id="anon-toggle">
+                <span>Remain Anonymous</span>
+            </label>
+
+            <div id="identity-fields">
+                <div class="input-group">
+                    <label class="input-label" for="user-nickname">Nickname</label>
+                    <input type="text" id="user-nickname" class="modern-field" placeholder="How shall we address you?">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="user-course">Course & Year Level</label>
+                    <input type="text" id="user-course" class="modern-field" placeholder="e.g. BS Arch - 3rd Year">
+                </div>
+            </div>
         </div>
 
         <button id="submit-btn" class="action-btn">TRANSMIT INTO THE LOOP</button>
@@ -374,14 +395,30 @@
             const nicknameInput = document.getElementById('user-nickname');
             const courseInput = document.getElementById('user-course');
             const anonToggle = document.getElementById('anon-toggle');
+            const anonLabel = document.getElementById('anon-label');
             const identityFields = document.getElementById('identity-fields');
             const status = document.getElementById('status-msg');
             
             view.classList.remove('hidden');
 
             anonToggle.onchange = () => {
-                identityFields.style.opacity = anonToggle.checked ? "0.3" : "1";
-                identityFields.style.pointerEvents = anonToggle.checked ? "none" : "all";
+                const isChecked = anonToggle.checked;
+                anonLabel.classList.toggle('active', isChecked);
+                
+                if (isChecked) {
+                    identityFields.style.opacity = "0";
+                    identityFields.style.transform = "translateY(-10px) scaleY(0.95)";
+                    identityFields.style.pointerEvents = "none";
+                    // Brief delay to hide after fade
+                    setTimeout(() => { if(anonToggle.checked) identityFields.style.display = "none"; }, 400);
+                } else {
+                    identityFields.style.display = "block";
+                    // Force reflow
+                    void identityFields.offsetWidth;
+                    identityFields.style.opacity = "1";
+                    identityFields.style.transform = "translateY(0) scaleY(1)";
+                    identityFields.style.pointerEvents = "all";
+                }
             };
 
             btn.onclick = async () => {
