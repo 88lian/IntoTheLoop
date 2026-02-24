@@ -13,6 +13,8 @@
             --accent-red: #8b0000;
             --bg-dark: #121212;
             --admin-bg: #0f1115;
+            --transition-speed: 1s;
+            --ease: cubic-bezier(0.23, 1, 0.32, 1);
         }
 
         /* RESET & BASE */
@@ -24,7 +26,7 @@
             min-height: 100vh;
             background-color: var(--bg-dark);
             color: var(--ink-color);
-            transition: background-color 0.3s ease;
+            overflow-x: hidden;
         }
 
         /* THE CHAMELEON: OBS / PROJECTOR OVERLAY MODE */
@@ -86,52 +88,50 @@
             transition: all 0.1s;
         }
         button.action-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #5a0000; }
-        button.action-btn:disabled { background: #666; cursor: not-allowed; box-shadow: none; }
+        button.action-btn:disabled { background: #666 !important; cursor: not-allowed; box-shadow: none; }
 
         /* LIVE OVERLAY - PROJECTOR */
         #qa-container {
-            display: flex;
-            flex-direction: column; /* Vertical stack ensures smoother sliding logic */
-            gap: 30px;
+            position: relative;
             max-width: 1000px;
             margin: 0 auto;
-            perspective: 1000px;
+            height: 100vh;
+            perspective: 1200px;
         }
 
         .question-card {
+            position: absolute;
             width: 100%;
             background-color: var(--paper-color);
             padding: 35px 45px; 
-            position: relative;
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
             box-shadow: 8px 8px 25px rgba(0,0,0,0.4);
             border-left: 12px solid var(--accent-red); 
             clip-path: polygon(0% 0%, 100% 1%, 99.5% 99%, 0.5% 100%);
-            transition: opacity 1s cubic-bezier(0.23, 1, 0.32, 1), transform 1s cubic-bezier(0.23, 1, 0.32, 1);
+            
+            /* The Core Animation Engine */
+            transition: 
+                transform var(--transition-speed) var(--ease),
+                opacity var(--transition-speed) var(--ease),
+                margin var(--transition-speed) var(--ease);
+            
             pointer-events: none;
             will-change: transform, opacity;
             transform-origin: center top;
-        }
-
-        /* Entry State */
-        .card-entering {
             opacity: 0;
-            transform: translateY(40px) rotateX(-15deg) scale(0.95);
+            transform: translateY(100px) rotateX(-20deg) scale(0.9);
         }
 
-        /* Active State */
-        .card-active {
+        /* Shown state */
+        .question-card.active {
             opacity: 1;
-            transform: translateY(0) rotateX(0deg) scale(1);
+            transform: translateY(var(--y-offset)) rotateX(0deg) scale(1);
         }
 
-        /* Exit State */
+        /* Hidden/Exit state */
         .question-card.exiting {
-            opacity: 0 !important;
-            transform: translateY(-40px) rotateX(15deg) scale(0.9) !important;
-            margin-bottom: -150px; /* Collapse space smoothly */
-            pointer-events: none;
-            z-index: -1;
+            opacity: 0;
+            transform: translateY(calc(var(--y-offset) - 100px)) rotateX(20deg) scale(0.85);
         }
 
         .card-label { 
@@ -168,7 +168,7 @@
             align-items: center;
             border: 1px solid #333;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            animation: cardEnterAdmin 0.4s ease-out;
+            transition: all 0.3s ease;
         }
         .admin-controls { display: flex; gap: 12px; }
         .toggle-btn {
@@ -178,17 +178,13 @@
             border-radius: 6px;
             font-family: 'Special Elite', serif;
             font-weight: bold;
-            transition: opacity 0.2s;
+            transition: transform 0.1s, opacity 0.2s;
         }
-        .toggle-btn:hover { opacity: 0.8; }
+        .toggle-btn:hover { opacity: 0.9; transform: scale(1.05); }
+        .toggle-btn:active { transform: scale(0.95); }
         .btn-show { background: #2ecc71; color: white; }
         .btn-hide { background: #e67e22; color: white; }
         .btn-delete { background: #e74c3c; color: white; }
-
-        @keyframes cardEnterAdmin {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
 
         .hidden { display: none !important; }
         #status-msg { text-align: center; margin-top: 15px; font-size: 0.9rem; min-height: 1.2em; color: var(--accent-red); }
@@ -200,6 +196,13 @@
             margin: 20px 0 40px 0;
             padding-bottom: 20px;
             border-bottom: 2px solid #333;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            opacity: 0.5;
+            font-style: italic;
         }
     </style>
 </head>
@@ -219,11 +222,11 @@
         <div class="admin-header">
             <div>
                 <h1 style="text-align: left; color: #fff; margin:0;">Moderation Chamber</h1>
-                <p style="margin:5px 0 0 0; opacity: 0.6;">Control the visible inquiries</p>
+                <p style="margin:5px 0 0 0; opacity: 0.6;">Manage the Peculiar Queue</p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button onclick="window.bulkVisibility(true)" class="toggle-btn btn-show">SHOW ALL</button>
-                <button onclick="window.bulkVisibility(false)" class="toggle-btn btn-hide">HIDE ALL</button>
+                <button id="bulk-show" class="toggle-btn btn-show">SHOW ALL</button>
+                <button id="bulk-hide" class="toggle-btn btn-hide">HIDE ALL</button>
             </div>
         </div>
         <div id="admin-list"></div>
@@ -239,7 +242,7 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // CONFIG
+        // CONFIG & STATE
         const firebaseConfig = {
             apiKey: "AIzaSyBTjoy3Kvc3L5Fl6XIy3lq-L8BFMOY77gM",
             authDomain: "missperi.firebaseapp.com",
@@ -252,64 +255,86 @@
 
         const APP_COLLECTION_ID = 'peculiar_app';
         const params = new URLSearchParams(window.location.search);
-        
         const IS_ADMIN = params.get('admin') === 'true';
         const IS_DISPLAY = params.get('display') === 'true';
 
+        // UTILS
+        const escapeHTML = (str) => {
+            const p = document.createElement('p');
+            p.textContent = str;
+            return p.innerHTML;
+        };
+
+        // FIREBASE INIT
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // MAIN APP ROUTING
         signInAnonymously(auth).then((userCred) => {
-            if (IS_ADMIN) {
-                initAdmin(db);
-            } else if (IS_DISPLAY) {
-                initDisplay(db);
-            } else {
-                initSubmission(db, userCred.user.uid);
-            }
+            if (IS_ADMIN) initAdmin();
+            else if (IS_DISPLAY) initDisplay();
+            else initSubmission(userCred.user.uid);
         });
 
-        function initSubmission(db, uid) {
+        /**
+         * SUBMISSION VIEW LOGIC
+         */
+        function initSubmission(uid) {
             const view = document.getElementById('view-submission');
-            view.classList.remove('hidden');
             const btn = document.getElementById('submit-btn');
             const input = document.getElementById('question-input');
             const status = document.getElementById('status-msg');
 
+            view.classList.remove('hidden');
+
             btn.onclick = async () => {
                 const text = input.value.trim();
                 if (!text) return;
+
                 btn.disabled = true;
-                status.innerText = "Transmitting...";
+                status.innerText = "Transmitting to the Loop...";
+                
                 try {
                     await addDoc(collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions'), {
-                        text: text,
+                        text,
                         timestamp: serverTimestamp(),
                         author: uid,
                         visible: false
                     });
                     input.value = "";
-                    status.innerText = "Sent successfully.";
-                    setTimeout(() => status.innerText = "", 3000);
-                } catch (e) { status.innerText = "Error."; } 
-                finally { btn.disabled = false; }
+                    status.innerText = "The inquiry has been received.";
+                    setTimeout(() => status.innerText = "", 4000);
+                } catch (e) {
+                    status.innerText = "The Loop is unstable. Try again.";
+                } finally {
+                    btn.disabled = false;
+                }
             };
         }
 
-        let adminDocs = [];
-        function initAdmin(db) {
+        /**
+         * ADMIN VIEW LOGIC
+         */
+        function initAdmin() {
             document.body.classList.add('admin-mode');
             const view = document.getElementById('view-admin');
             const list = document.getElementById('admin-list');
             view.classList.remove('hidden');
 
-            const q = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
-            onSnapshot(q, (snapshot) => {
-                adminDocs = snapshot.docs;
+            const qRef = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
+            let currentDocs = [];
+
+            onSnapshot(qRef, (snapshot) => {
+                currentDocs = snapshot.docs;
                 const items = snapshot.docs
                     .map(d => ({ id: d.id, ...d.data() }))
                     .sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+
+                if (items.length === 0) {
+                    list.innerHTML = `<div class="empty-state">No inquiries have arrived yet...</div>`;
+                    return;
+                }
 
                 list.innerHTML = "";
                 items.forEach(item => {
@@ -317,130 +342,102 @@
                     card.className = 'admin-card';
                     card.innerHTML = `
                         <div style="flex:1; padding-right:20px;">
-                            <p style="margin:0; font-size:1.2rem; color:#fff;">${escape(item.text)}</p>
-                            <small style="opacity:0.4; font-family:monospace;">${item.id}</small>
+                            <p style="margin:0; font-size:1.1rem; color:#fff;">${escapeHTML(item.text)}</p>
                         </div>
                         <div class="admin-controls">
-                            <button class="toggle-btn ${item.visible ? 'btn-hide' : 'btn-show'}" 
-                                onclick="window.toggleVis('${item.id}', ${!item.visible})">
+                            <button class="toggle-btn ${item.visible ? 'btn-hide' : 'btn-show'}">
                                 ${item.visible ? 'HIDE' : 'SHOW'}
                             </button>
-                            <button class="toggle-btn btn-delete" onclick="window.delItem('${item.id}')">DEL</button>
+                            <button class="toggle-btn btn-delete">DEL</button>
                         </div>
                     `;
+
+                    card.querySelector('.btn-delete').onclick = () => {
+                        if(confirm("Erase from history?")) deleteDoc(doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', item.id));
+                    };
+                    card.querySelector('.btn-show, .btn-hide').onclick = () => {
+                        updateDoc(doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', item.id), { visible: !item.visible });
+                    };
+
                     list.appendChild(card);
                 });
             });
 
-            window.toggleVis = async (id, state) => {
-                const ref = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', id);
-                await updateDoc(ref, { visible: state });
-            };
-            window.delItem = async (id) => {
-                if(!confirm("Erase permanently?")) return;
-                const ref = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', id);
-                await deleteDoc(ref);
-            };
-            window.bulkVisibility = async (state) => {
-                for (const d of adminDocs) {
-                    const ref = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', d.id);
-                    await updateDoc(ref, { visible: state });
-                }
-            };
+            document.getElementById('bulk-show').onclick = () => currentDocs.forEach(d => updateDoc(d.ref, { visible: true }));
+            document.getElementById('bulk-hide').onclick = () => currentDocs.forEach(d => updateDoc(d.ref, { visible: false }));
         }
 
-        function initDisplay(db) {
+        /**
+         * DISPLAY VIEW LOGIC (The "Virtual Layout" Engine)
+         */
+        function initDisplay() {
             document.body.classList.add('obs-overlay');
             const view = document.getElementById('view-display');
             const container = document.getElementById('qa-container');
             view.classList.remove('hidden');
 
-            const q = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
-            let activeQuestionIds = new Set();
+            const qRef = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
+            const CARD_GAP = 30; // Gap between cards in pixels
 
-            onSnapshot(q, (snapshot) => {
-                const currentData = snapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() }))
+            onSnapshot(qRef, (snapshot) => {
+                const activeData = snapshot.docs
+                    .map(d => ({ id: d.id, ...d.data() }))
                     .filter(d => d.timestamp && d.visible === true)
                     .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
-                    .slice(0, 10);
+                    .slice(0, 8); // Keep screen clean
 
-                const currentIds = new Set(currentData.map(d => d.id));
-
-                // 1. Snapshot First Positions for FLIP
-                const firstPositions = {};
-                activeQuestionIds.forEach(id => {
-                    const el = document.getElementById(`q-${id}`);
-                    if (el && !el.classList.contains('exiting')) {
-                        firstPositions[id] = el.getBoundingClientRect();
+                const activeIds = new Set(activeData.map(d => d.id));
+                const existingElements = Array.from(container.querySelectorAll('.question-card'));
+                
+                // 1. Mark elements for removal
+                existingElements.forEach(el => {
+                    const id = el.dataset.id;
+                    if (!activeIds.has(id) && !el.classList.contains('exiting')) {
+                        el.classList.add('exiting');
+                        el.classList.remove('active');
+                        // Remove after animation completes
+                        setTimeout(() => el.remove(), 1000);
                     }
                 });
 
-                // 2. Identify and flag exiting elements
-                activeQuestionIds.forEach(id => {
-                    if (!currentIds.has(id)) {
-                        const el = document.getElementById(`q-${id}`);
-                        if (el && !el.classList.contains('exiting')) {
-                            el.classList.add('exiting');
-                            // We don't remove from activeQuestionIds yet to prevent re-rendering logic issues
-                            setTimeout(() => {
-                                if (el && el.parentNode) el.remove();
-                                activeQuestionIds.delete(id);
-                            }, 1000); // Wait for transition
-                        }
-                    }
-                });
-
-                // 3. Create and append new elements
-                currentData.forEach(data => {
-                    if (!activeQuestionIds.has(data.id)) {
-                        activeQuestionIds.add(data.id);
-                        const card = document.createElement('div');
-                        card.id = `q-${data.id}`;
-                        card.className = 'question-card card-entering';
-                        card.innerHTML = `<div class="card-label">Incoming Inquiry</div><p class="question-text">${escape(data.text)}</p>`;
+                // 2. Add or Update elements
+                let currentY = 0;
+                activeData.forEach((data, index) => {
+                    let el = document.getElementById(`q-${data.id}`);
+                    
+                    if (!el) {
+                        el = document.createElement('div');
+                        el.id = `q-${data.id}`;
+                        el.dataset.id = data.id;
+                        el.className = 'question-card';
+                        el.innerHTML = `
+                            <div class="card-label">Incoming Inquiry</div>
+                            <p class="question-text">${escapeHTML(data.text)}</p>
+                        `;
+                        container.appendChild(el);
                         
-                        // We always prepend since we sort newest first
-                        container.prepend(card);
-                        
-                        // Smallest possible delay to trigger CSS transition
+                        // Small frame delay to ensure browser registers the initial "hidden" state
                         requestAnimationFrame(() => {
-                            card.classList.remove('card-entering');
-                            card.classList.add('card-active');
+                            el.classList.add('active');
                         });
                     }
-                });
 
-                // 4. FLIP: Play animation for elements that moved
-                requestAnimationFrame(() => {
-                    currentIds.forEach(id => {
-                        const el = document.getElementById(`q-${id}`);
-                        if (el && firstPositions[id]) {
-                            const lastPos = el.getBoundingClientRect();
-                            const deltaY = firstPositions[id].top - lastPos.top;
+                    // 3. Coordinate Positioning
+                    // We calculate where this card should be based on its size and the cards before it
+                    el.style.setProperty('--y-offset', `${currentY}px`);
+                    
+                    // Force the card to be "active" if it was already there
+                    el.classList.add('active');
+                    el.classList.remove('exiting');
 
-                            if (Math.abs(deltaY) > 0.5) { // Threshold to prevent micro-snapping
-                                // Invert
-                                el.style.transition = 'none';
-                                el.style.transform = `translateY(${deltaY}px)`;
-                                
-                                // Reflow
-                                el.offsetHeight;
-
-                                // Play
-                                el.style.transition = 'transform 1s cubic-bezier(0.23, 1, 0.32, 1), opacity 1s ease';
-                                el.style.transform = 'translateY(0)';
-                            }
-                        }
-                    });
+                    // Increment Y for the next card
+                    // Use getBoundingClientRect to account for variable text length
+                    // We do this in a timeout to ensure DOM is ready
+                    setTimeout(() => {
+                        if (el) currentY += el.offsetHeight + CARD_GAP;
+                    }, 50);
                 });
             });
-        }
-
-        function escape(html) {
-            const p = document.createElement('p');
-            p.textContent = html;
-            return p.innerHTML;
         }
     </script>
 </body>
