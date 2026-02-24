@@ -12,7 +12,7 @@
             --ink-color: #2c2c2c;
             --accent-red: #8b0000;
             --bg-dark: #121212;
-            --admin-bg: #1a1a1a;
+            --admin-bg: #0f1115;
         }
 
         /* RESET & BASE */
@@ -24,7 +24,7 @@
             min-height: 100vh;
             background-color: var(--bg-dark);
             color: var(--ink-color);
-            transition: background-color 0.5s ease;
+            transition: background-color 0.3s ease;
         }
 
         /* THE CHAMELEON: OBS / PROJECTOR OVERLAY MODE */
@@ -37,19 +37,21 @@
         /* ADMIN MODE STYLING */
         body.admin-mode {
             background-color: var(--admin-bg);
-            color: #eee;
+            color: #e0e0e0;
+            background-image: radial-gradient(circle at center, #1a1c22 0%, #0f1115 100%);
         }
 
         /* AUDIENCE SUBMISSION UI */
         .submission-container {
             max-width: 500px;
-            margin: 40px auto;
+            margin: 80px auto;
             background: var(--paper-color);
             padding: 40px 30px;
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
-            box-shadow: 15px 15px 40px rgba(0,0,0,0.6);
+            box-shadow: 15px 15px 40px rgba(0,0,0,0.8);
             clip-path: polygon(1% 2%, 98% 0%, 100% 97%, 3% 100%, 0% 95%);
             transform: rotate(-1deg);
+            transition: transform 0.3s ease;
         }
 
         h1 { font-family: 'IM Fell English', serif; color: var(--accent-red); text-align: center; font-size: 2.2rem; margin: 0 0 10px 0; }
@@ -86,7 +88,7 @@
         button.action-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #5a0000; }
         button.action-btn:disabled { background: #666; cursor: not-allowed; box-shadow: none; }
 
-        /* LIVE OVERLAY - PROJECTOR OPTIMIZED MASONRY */
+        /* LIVE OVERLAY - PROJECTOR */
         #qa-container {
             width: 100%;
             column-count: 2; 
@@ -94,7 +96,6 @@
             max-width: 1600px;
             margin: 0 auto;
         }
-
         @media (max-width: 1000px) { #qa-container { column-count: 1; } }
 
         .question-card {
@@ -110,7 +111,6 @@
             border-left: 10px solid var(--accent-red); 
             clip-path: polygon(0% 0%, 100% 1%, 99% 99%, 1% 100%);
             break-inside: avoid;
-            transition: opacity 0.5s ease;
         }
 
         .card-label { 
@@ -123,9 +123,7 @@
             display: flex;
             align-items: center;
         }
-        .card-label::after {
-            content: ""; flex: 1; height: 2px; background: rgba(139, 0, 0, 0.2); margin-left: 15px;
-        }
+        .card-label::after { content: ""; flex: 1; height: 2px; background: rgba(139, 0, 0, 0.2); margin-left: 15px; }
 
         .question-text { 
             font-size: 2rem; 
@@ -136,33 +134,38 @@
             word-wrap: break-word;
         }
 
-        /* ADMIN SPECIFIC CARDS */
+        /* ADMIN INTERFACE */
         .admin-card {
-            background: #2a2a2a;
-            color: #ccc;
-            border: 1px solid #444;
-            padding: 20px;
-            margin-bottom: 15px;
+            background: #1e2128;
+            color: #fff;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-radius: 8px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            animation: cardEnter 0.4s ease-out;
         }
-        .admin-controls { display: flex; gap: 10px; }
+        .admin-controls { display: flex; gap: 12px; }
         .toggle-btn {
-            padding: 8px 15px;
+            padding: 12px 20px;
             cursor: pointer;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             font-family: 'Special Elite', serif;
+            font-weight: bold;
+            transition: opacity 0.2s;
         }
-        .btn-show { background: #2e7d32; color: white; }
-        .btn-hide { background: #c62828; color: white; }
-        .btn-delete { background: #444; color: white; }
+        .toggle-btn:hover { opacity: 0.8; }
+        .btn-show { background: #2ecc71; color: white; }
+        .btn-hide { background: #e67e22; color: white; }
+        .btn-delete { background: #e74c3c; color: white; }
 
         @keyframes cardEnter {
-            from { opacity: 0; transform: scale(0.95) translateY(40px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .hidden { display: none !important; }
@@ -172,16 +175,16 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #444;
+            margin: 20px 0 40px 0;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #333;
         }
     </style>
 </head>
 <body>
 
-    <!-- AUDIENCE SUBMISSION VIEW -->
-    <div id="submission-view" class="submission-container hidden">
+    <!-- VIEW 1: SUBMISSION -->
+    <div id="view-submission" class="submission-container hidden">
         <h1>A Home for the Peculiar</h1>
         <span class="sub-header">Submit your inquiry to the panel</span>
         <textarea id="question-input" placeholder="Type your inquiry here..."></textarea>
@@ -189,26 +192,32 @@
         <div id="status-msg"></div>
     </div>
 
-    <!-- ADMIN PANEL VIEW -->
-    <div id="admin-view" class="hidden" style="max-width: 800px; margin: 0 auto;">
+    <!-- VIEW 2: ADMIN PANEL -->
+    <div id="view-admin" class="hidden" style="max-width: 900px; margin: 0 auto; padding: 20px;">
         <div class="admin-header">
-            <h2 style="color: var(--accent-red);">Moderation Chamber</h2>
             <div>
-                <button onclick="window.bulkVisibility(true)" class="toggle-btn btn-show">Show All</button>
-                <button onclick="window.bulkVisibility(false)" class="toggle-btn btn-hide">Hide All</button>
+                <h1 style="text-align: left; color: #fff; margin:0;">Moderation Chamber</h1>
+                <p style="margin:5px 0 0 0; opacity: 0.6;">Control the visible inquiries</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="window.bulkVisibility(true)" class="toggle-btn btn-show">SHOW ALL</button>
+                <button onclick="window.bulkVisibility(false)" class="toggle-btn btn-hide">HIDE ALL</button>
             </div>
         </div>
         <div id="admin-list"></div>
     </div>
 
-    <!-- PROJECTOR OVERLAY VIEW -->
-    <div id="qa-container" class="hidden"></div>
+    <!-- VIEW 3: PROJECTOR/DISPLAY -->
+    <div id="view-display" class="hidden">
+        <div id="qa-container"></div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyBTjoy3Kvc3L5Fl6XIy3lq-L8BFMOY77gM",
             authDomain: "missperi.firebaseapp.com",
@@ -221,26 +230,29 @@
 
         const APP_COLLECTION_ID = 'peculiar_app';
         const params = new URLSearchParams(window.location.search);
-        const isOverlay = params.get('display') === 'true';
-        const isAdmin = params.get('admin') === 'true';
+        
+        // CRITICAL MODE DETECTION
+        const IS_ADMIN = params.get('admin') === 'true';
+        const IS_DISPLAY = params.get('display') === 'true';
 
+        // Initialize
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         signInAnonymously(auth).then((userCred) => {
-            if (isAdmin) {
-                setupAdmin(db);
-            } else if (isOverlay) {
-                setupOverlay(db);
+            if (IS_ADMIN) {
+                initAdmin(db);
+            } else if (IS_DISPLAY) {
+                initDisplay(db);
             } else {
-                setupSubmission(db, userCred.user.uid);
+                initSubmission(db, userCred.user.uid);
             }
         });
 
-        // --- SUBMISSION LOGIC ---
-        function setupSubmission(db, uid) {
-            document.getElementById('submission-view').classList.remove('hidden');
+        function initSubmission(db, uid) {
+            const view = document.getElementById('view-submission');
+            view.classList.remove('hidden');
             const btn = document.getElementById('submit-btn');
             const input = document.getElementById('question-input');
             const status = document.getElementById('status-msg');
@@ -255,85 +267,79 @@
                         text: text,
                         timestamp: serverTimestamp(),
                         author: uid,
-                        visible: false // Hidden by default until admin approves
+                        visible: false
                     });
                     input.value = "";
-                    status.innerText = "Sent successfully into the loop.";
-                    setTimeout(() => status.innerText = "", 4000);
-                } catch (e) {
-                    status.innerText = "Transmission Error.";
-                } finally {
-                    btn.disabled = false;
-                }
+                    status.innerText = "Sent successfully.";
+                    setTimeout(() => status.innerText = "", 3000);
+                } catch (e) { status.innerText = "Error."; } 
+                finally { btn.disabled = false; }
             };
         }
 
-        // --- ADMIN MODERATION LOGIC ---
-        let allQuestionDocs = [];
-        function setupAdmin(db) {
+        let adminDocs = [];
+        function initAdmin(db) {
             document.body.classList.add('admin-mode');
-            const adminView = document.getElementById('admin-view');
-            const adminList = document.getElementById('admin-list');
-            adminView.classList.remove('hidden');
+            const view = document.getElementById('view-admin');
+            const list = document.getElementById('admin-list');
+            view.classList.remove('hidden');
 
             const q = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
             onSnapshot(q, (snapshot) => {
-                allQuestionDocs = snapshot.docs;
+                adminDocs = snapshot.docs;
                 const items = snapshot.docs
                     .map(d => ({ id: d.id, ...d.data() }))
                     .sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
 
-                adminList.innerHTML = "";
+                list.innerHTML = "";
                 items.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'admin-card';
-                    div.innerHTML = `
+                    const card = document.createElement('div');
+                    card.className = 'admin-card';
+                    card.innerHTML = `
                         <div style="flex:1; padding-right:20px;">
-                            <small style="opacity:0.5">${item.id.substring(0,5)}</small>
-                            <p style="margin:5px 0; font-size:1.1rem;">${escape(item.text)}</p>
+                            <p style="margin:0; font-size:1.2rem; color:#fff;">${escape(item.text)}</p>
+                            <small style="opacity:0.4; font-family:monospace;">${item.id}</small>
                         </div>
                         <div class="admin-controls">
                             <button class="toggle-btn ${item.visible ? 'btn-hide' : 'btn-show'}" 
-                                onclick="window.toggleVisibility('${item.id}', ${!item.visible})">
+                                onclick="window.toggleVis('${item.id}', ${!item.visible})">
                                 ${item.visible ? 'HIDE' : 'SHOW'}
                             </button>
-                            <button class="toggle-btn btn-delete" onclick="window.deleteItem('${item.id}')">DEL</button>
+                            <button class="toggle-btn btn-delete" onclick="window.delItem('${item.id}')">DEL</button>
                         </div>
                     `;
-                    adminList.appendChild(div);
+                    list.appendChild(card);
                 });
             });
 
-            window.toggleVisibility = async (id, state) => {
-                const docRef = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', id);
-                await updateDoc(docRef, { visible: state });
+            window.toggleVis = async (id, state) => {
+                const ref = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', id);
+                await updateDoc(ref, { visible: state });
             };
-
-            window.deleteItem = async (id) => {
-                if(!confirm("Erase this inquiry from existence?")) return;
-                const docRef = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', id);
-                await deleteDoc(docRef);
+            window.delItem = async (id) => {
+                if(!confirm("Erase permanently?")) return;
+                const ref = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', id);
+                await deleteDoc(ref);
             };
-
             window.bulkVisibility = async (state) => {
-                for (const d of allQuestionDocs) {
-                    const docRef = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', d.id);
-                    await updateDoc(docRef, { visible: state });
+                for (const d of adminDocs) {
+                    const ref = doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', d.id);
+                    await updateDoc(ref, { visible: state });
                 }
             };
         }
 
-        // --- PROJECTOR OVERLAY LOGIC ---
-        function setupOverlay(db) {
+        function initDisplay(db) {
             document.body.classList.add('obs-overlay');
+            const view = document.getElementById('view-display');
             const container = document.getElementById('qa-container');
-            container.classList.remove('hidden');
+            view.classList.remove('hidden');
 
             const q = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
             onSnapshot(q, (snapshot) => {
                 const items = snapshot.docs
-                    .map(doc => ({id: doc.id, ...doc.data()}))
-                    .filter(d => d.timestamp && d.visible === true) // ONLY SHOW VISIBLE
+                    .map(doc => doc.data())
+                    .filter(d => d.timestamp && d.visible === true)
                     .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
                     .slice(0, 10);
 
@@ -348,9 +354,8 @@
         }
 
         function escape(html) {
-            const text = document.createTextNode(html);
             const p = document.createElement('p');
-            p.appendChild(text);
+            p.textContent = html;
             return p.innerHTML;
         }
     </script>
