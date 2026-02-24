@@ -30,7 +30,7 @@
         body.obs-overlay {
             background-color: transparent !important;
             overflow: hidden;
-            padding: 50px; /* More breathing room for projector edges */
+            padding: 50px; 
         }
 
         /* AUDIENCE SUBMISSION UI */
@@ -60,6 +60,7 @@
             outline: none;
             padding: 10px;
             display: block;
+            resize: none;
         }
 
         button#submit-btn {
@@ -81,7 +82,7 @@
         /* LIVE OVERLAY - PROJECTOR OPTIMIZED MASONRY */
         #qa-container {
             width: 100%;
-            column-count: 2; /* 2 Columns for better readability on large screens */
+            column-count: 2; 
             column-gap: 40px;
             max-width: 1600px;
             margin: 0 auto;
@@ -92,20 +93,20 @@
         .question-card {
             display: inline-block;
             width: 100%;
-            margin-bottom: 40px; /* More vertical space */
+            margin-bottom: 40px; 
             background-color: var(--paper-color);
-            padding: 40px; /* Larger padding for medium size */
+            padding: 40px; 
             position: relative;
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
             box-shadow: 12px 12px 30px rgba(0,0,0,0.5);
             animation: cardEnter 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            border-left: 10px solid var(--accent-red); /* Thicker border for visibility */
+            border-left: 10px solid var(--accent-red); 
             clip-path: polygon(0% 0%, 100% 1%, 99% 99%, 1% 100%);
             break-inside: avoid;
         }
 
         .card-label { 
-            font-size: 1rem; /* Larger label */
+            font-size: 1rem; 
             color: var(--accent-red); 
             text-transform: uppercase; 
             letter-spacing: 4px;
@@ -119,7 +120,7 @@
         }
 
         .question-text { 
-            font-size: 2rem; /* Medium-Large size for projector readability */
+            font-size: 2rem; 
             color: var(--ink-color); 
             margin: 0; 
             line-height: 1.4;
@@ -147,14 +148,15 @@
         <div id="status-msg"></div>
     </div>
 
-    <!-- OBS / PROJECTOR OVERLAY VIEW -->
+    <!-- PROJECTOR OVERLAY VIEW -->
     <div id="qa-container" class="hidden"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // FIXED FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyBTjoy3Kvc3L5Fl6XIy3lq-L8BFMOY77gM",
             authDomain: "missperi.firebaseapp.com",
@@ -169,6 +171,7 @@
         const params = new URLSearchParams(window.location.search);
         const isOverlay = params.get('display') === 'true';
 
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -179,7 +182,10 @@
             } else {
                 setupSubmission(db, userCred.user.uid);
             }
-        }).catch(err => console.error("Firebase Auth Error:", err));
+        }).catch(err => {
+            console.error("Connection Error:", err);
+            document.body.innerHTML = `<div style="color:white; padding:20px;">Connection to the Loop failed. Check Firebase Rules.</div>`;
+        });
 
         function setupSubmission(db, uid) {
             document.getElementById('submission-view').classList.remove('hidden');
@@ -202,7 +208,7 @@
                     status.innerText = "Sent successfully into the loop.";
                     setTimeout(() => status.innerText = "", 4000);
                 } catch (e) {
-                    status.innerText = "Transmission Error.";
+                    status.innerText = "Transmission Error. Ensure Firestore Rules are set to Public.";
                 } finally {
                     btn.disabled = false;
                 }
@@ -215,12 +221,13 @@
             container.classList.remove('hidden');
 
             const q = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
+            // We fetch the latest 10 questions
             onSnapshot(q, (snapshot) => {
                 const items = snapshot.docs
                     .map(doc => doc.data())
                     .filter(d => d.timestamp)
                     .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
-                    .slice(0, 10); // 10 is enough for a clean 2-column projector view
+                    .slice(0, 10);
 
                 container.innerHTML = "";
                 items.forEach(data => {
@@ -229,6 +236,8 @@
                     card.innerHTML = `<div class="card-label">Incoming Inquiry</div><p class="question-text">${escape(data.text)}</p>`;
                     container.appendChild(card);
                 });
+            }, (error) => {
+                console.error("Snapshot error:", error);
             });
         }
 
