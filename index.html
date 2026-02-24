@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Home for the Peculiar | Live Q&A</title>
+    <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IM+Fell+English&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --paper-color: #e8e2d2;
+            --ink-color: #2c2c2c;
+            --accent-red: #8b0000;
+            --bg-dark: #121212;
+        }
+
+        /* RESET & BASE */
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Special Elite', typewriter, serif;
+            min-height: 100vh;
+            background-color: var(--bg-dark);
+            color: var(--ink-color);
+            transition: background-color 0.5s ease;
+        }
+
+        /* THE CHAMELEON: OBS OVERLAY MODE */
+        body.obs-overlay {
+            background-color: transparent !important;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; /* Questions pop up from bottom */
+            align-items: flex-start;
+            padding: 40px;
+        }
+
+        /* CONFIGURATION PANEL (Setup UI) */
+        #config-panel {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 30px;
+            border-top: 10px solid var(--accent-red);
+            font-family: sans-serif;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        #config-panel h2 { margin-top: 0; color: var(--accent-red); }
+        #config-panel textarea { width: 100%; height: 150px; font-family: monospace; padding: 10px; margin: 10px 0; border: 1px solid #ccc; }
+        #config-panel button { background: #333; color: white; border: none; padding: 12px 24px; cursor: pointer; font-weight: bold; }
+
+        /* AUDIENCE SUBMISSION UI */
+        .submission-container {
+            max-width: 500px;
+            margin: 40px auto;
+            background: var(--paper-color);
+            padding: 40px 30px;
+            background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
+            box-shadow: 15px 15px 40px rgba(0,0,0,0.6);
+            /* Torn paper aesthetic */
+            clip-path: polygon(1% 2%, 98% 0%, 100% 97%, 3% 100%, 0% 95%);
+            transform: rotate(-1deg);
+        }
+
+        h1 { font-family: 'IM Fell English', serif; color: var(--accent-red); text-align: center; font-size: 2.2rem; margin: 0 0 10px 0; }
+        .sub-header { text-align: center; font-style: italic; opacity: 0.8; margin-bottom: 30px; display: block; }
+        
+        textarea#question-input {
+            width: 100%;
+            height: 150px;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid rgba(0,0,0,0.2);
+            font-family: 'Special Elite', serif;
+            font-size: 1.2rem;
+            line-height: 1.5;
+            outline: none;
+            padding: 10px;
+            display: block;
+        }
+
+        button#submit-btn {
+            background: var(--accent-red);
+            color: white;
+            border: none;
+            padding: 20px;
+            font-family: 'Special Elite', serif;
+            font-size: 1.1rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 30px;
+            box-shadow: 0 5px 0 #5a0000;
+            transition: all 0.1s;
+        }
+        button#submit-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #5a0000; }
+        button#submit-btn:disabled { background: #666; cursor: not-allowed; box-shadow: none; }
+
+        /* LIVE OVERLAY CARDS */
+        #qa-container {
+            width: 550px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .question-card {
+            background-color: var(--paper-color);
+            padding: 30px;
+            position: relative;
+            background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
+            box-shadow: 10px 10px 25px rgba(0,0,0,0.4);
+            animation: cardEnter 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            border-left: 8px solid var(--accent-red);
+            /* Hand-torn paper effect */
+            clip-path: polygon(0% 0%, 100% 2%, 97% 98%, 0% 100%);
+        }
+
+        .card-label { 
+            font-size: 0.75rem; 
+            color: var(--accent-red); 
+            text-transform: uppercase; 
+            letter-spacing: 3px;
+            margin-bottom: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        .card-label::after {
+            content: ""; flex: 1; height: 1px; background: rgba(139, 0, 0, 0.2); margin-left: 15px;
+        }
+
+        .question-text { 
+            font-size: 1.6rem; 
+            color: var(--ink-color); 
+            margin: 0; 
+            line-height: 1.3;
+            font-family: 'Special Elite', serif;
+        }
+
+        @keyframes cardEnter {
+            from { opacity: 0; transform: translateX(-50px) rotate(-3deg); }
+            to { opacity: 1; transform: translateX(0) rotate(0deg); }
+        }
+
+        .hidden { display: none !important; }
+
+        /* UTILITY */
+        #status-msg { text-align: center; margin-top: 15px; font-size: 0.9rem; min-height: 1.2em; color: var(--accent-red); }
+    </style>
+</head>
+<body>
+
+    <!-- 1. CONFIG PANEL (Initial Setup) -->
+    <div id="config-panel" class="hidden">
+        <h2>Peculiar Setup Wizard</h2>
+        <p>You are hosting this via GitHub. Paste your <strong>Firebase Config Object</strong> (the code snippet that looks like JSON) below to activate the "Loop".</p>
+        <textarea id="config-input" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "...",
+  "projectId": "...",
+  ...
+}'></textarea>
+        <button id="save-config">ACTIVATE CONNECTION</button>
+    </div>
+
+    <!-- 2. AUDIENCE SUBMISSION VIEW -->
+    <div id="submission-view" class="submission-container hidden">
+        <h1>A Home for the Peculiar</h1>
+        <span class="sub-header">Submit your inquiry to the panel</span>
+        <textarea id="question-input" placeholder="Type your inquiry here..."></textarea>
+        <button id="submit-btn">SEND INTO THE LOOP</button>
+        <div id="status-msg"></div>
+    </div>
+
+    <!-- 3. OBS OVERLAY VIEW -->
+    <div id="qa-container" class="hidden">
+        <!-- Live questions appear here -->
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const CONFIG_KEY = 'peculiar_qa_config';
+        const APP_COLLECTION_ID = 'peculiar_seminar_prod'; // Unique ID for your seminar
+        
+        // Detect Mode
+        const params = new URLSearchParams(window.location.search);
+        const isOverlay = params.get('display') === 'true';
+
+        // Load Config
+        let config = null;
+        const saved = localStorage.getItem(CONFIG_KEY);
+        if (saved) {
+            try { config = JSON.parse(saved); } catch(e) { localStorage.removeItem(CONFIG_KEY); }
+        }
+
+        if (!config) {
+            document.getElementById('config-panel').classList.remove('hidden');
+            document.getElementById('save-config').onclick = () => {
+                const val = document.getElementById('config-input').value.trim();
+                try {
+                    const parsed = JSON.parse(val);
+                    localStorage.setItem(CONFIG_KEY, JSON.stringify(parsed));
+                    window.location.reload();
+                } catch(e) { alert("Invalid JSON format. Please copy the exact object from Firebase console."); }
+            };
+        } else {
+            runApp(config);
+        }
+
+        async function runApp(fbConfig) {
+            try {
+                const app = initializeApp(fbConfig);
+                const auth = getAuth(app);
+                const db = getFirestore(app);
+
+                // Authenticate
+                const userCred = await signInAnonymously(auth);
+                const user = userCred.user;
+
+                if (isOverlay) {
+                    setupOverlay(db);
+                } else {
+                    setupSubmission(db, user.uid);
+                }
+            } catch (err) {
+                console.error("App Launch Failed:", err);
+                alert("Connection failed. Check your Firebase config and console for errors.");
+            }
+        }
+
+        function setupSubmission(db, uid) {
+            document.getElementById('submission-view').classList.remove('hidden');
+            const btn = document.getElementById('submit-btn');
+            const input = document.getElementById('question-input');
+            const status = document.getElementById('status-msg');
+
+            btn.onclick = async () => {
+                const text = input.value.trim();
+                if (!text) return;
+
+                btn.disabled = true;
+                status.innerText = "Transmitting...";
+
+                try {
+                    // Path follows Rule 1 for public sharing
+                    await addDoc(collection(db, 'artifacts', 'peculiar-app', 'public', 'data', 'questions'), {
+                        text: text,
+                        timestamp: serverTimestamp(),
+                        author: uid
+                    });
+                    input.value = "";
+                    status.innerText = "Sent successfully into the loop.";
+                    setTimeout(() => status.innerText = "", 4000);
+                } catch (e) {
+                    status.innerText = "Transmission Error. Try again.";
+                    console.error(e);
+                } finally {
+                    btn.disabled = false;
+                }
+            };
+        }
+
+        function setupOverlay(db) {
+            document.body.classList.add('obs-overlay');
+            const container = document.getElementById('qa-container');
+            container.classList.remove('hidden');
+
+            const q = collection(db, 'artifacts', 'peculiar-app', 'public', 'data', 'questions');
+            
+            // Real-time listener
+            onSnapshot(q, (snapshot) => {
+                const items = snapshot.docs
+                    .map(doc => doc.data())
+                    .filter(d => d.timestamp)
+                    .sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis())
+                    .slice(0, 3); // Keep only the latest 3 on screen
+
+                container.innerHTML = "";
+                items.forEach(data => {
+                    const card = document.createElement('div');
+                    card.className = 'question-card';
+                    card.innerHTML = `
+                        <div class="card-label">Incoming Inquiry</div>
+                        <p class="question-text">${escape(data.text)}</p>
+                    `;
+                    container.appendChild(card);
+                });
+            }, (err) => console.error("Overlay stream error:", err));
+        }
+
+        function escape(html) {
+            const text = document.createTextNode(html);
+            const p = document.createElement('p');
+            p.appendChild(text);
+            return p.innerHTML;
+        }
+    </script>
+</body>
+</html>
