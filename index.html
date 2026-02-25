@@ -233,17 +233,36 @@
         }
 
         /* ADMIN INTERFACE */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
         .admin-global-controls {
             background: rgba(255, 255, 255, 0.05);
             padding: 20px;
             border-radius: 12px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             display: flex;
             gap: 15px;
             border: 1px solid #333;
             align-items: center;
         }
-        .admin-global-controls h3 { margin: 0; flex: 1; font-size: 1rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .admin-global-controls h3 { margin: 0; flex: 1; font-size: 0.9rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+
+        .danger-zone {
+            background: rgba(231, 76, 60, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 1px dashed #e74c3c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .danger-zone h3 { margin: 0; font-size: 0.9rem; color: #e74c3c; text-transform: uppercase; letter-spacing: 1px; }
 
         .admin-card {
             background: #1e2128;
@@ -263,12 +282,39 @@
             border: none;
             border-radius: 6px;
             font-family: 'Special Elite', serif;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, transform 0.1s;
         }
         .toggle-btn:hover { opacity: 0.8; }
+        .toggle-btn:active { transform: scale(0.95); }
         .btn-show { background: #2ecc71; color: white; }
         .btn-hide { background: #e67e22; color: white; }
         .btn-delete { background: #e74c3c; color: white; }
+
+        /* MODAL POPUP */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-content {
+            background: #1e2128;
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+            border: 2px solid #e74c3c;
+            box-shadow: 0 0 50px rgba(231, 76, 60, 0.3);
+        }
+        .modal-content h2 { color: #e74c3c; margin-top: 0; }
+        .modal-buttons { display: flex; gap: 15px; margin-top: 30px; }
+        .modal-buttons button { flex: 1; padding: 15px; font-size: 1rem; }
 
         .hidden { display: none !important; }
         #status-msg { text-align: center; margin-top: 15px; font-size: 0.9rem; color: var(--accent-red); font-weight: bold; }
@@ -311,16 +357,34 @@
 
     <!-- VIEW 2: ADMIN PANEL -->
     <div id="view-admin" class="hidden" style="max-width: 900px; margin: 0 auto; padding: 20px;">
-        <h1 style="color: #fff; text-align: left;">Moderation Chamber</h1>
+        <div class="admin-header">
+            <h1 style="color: #fff; text-align: left; margin: 0;">Moderation Chamber</h1>
+        </div>
         
         <div class="admin-global-controls">
-            <h3>Global Controls</h3>
+            <h3>Visibility Controls</h3>
             <button id="global-show" class="toggle-btn btn-show">SHOW ALL</button>
             <button id="global-hide" class="toggle-btn btn-hide">HIDE ALL</button>
-            <button id="global-delete" class="toggle-btn btn-delete">DELETE ALL</button>
+        </div>
+
+        <div class="danger-zone">
+            <h3>Danger Zone</h3>
+            <button id="global-delete-trigger" class="toggle-btn btn-delete">DELETE ALL RECORDS</button>
         </div>
 
         <div id="admin-list"></div>
+    </div>
+
+    <!-- DELETE CONFIRMATION MODAL -->
+    <div id="delete-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Permanent Deletion?</h2>
+            <p>You are about to purge every record from the loop. This action is final and cannot be undone.</p>
+            <div class="modal-buttons">
+                <button id="modal-cancel" class="toggle-btn" style="background: #444; color: white;">CANCEL</button>
+                <button id="modal-confirm" class="toggle-btn btn-delete">YES, DELETE ALL</button>
+            </div>
+        </div>
     </div>
 
     <!-- VIEW 3: PROJECTOR/DISPLAY -->
@@ -425,9 +489,9 @@
             document.body.classList.add('admin-mode');
             const view = document.getElementById('view-admin');
             const list = document.getElementById('admin-list');
+            const deleteModal = document.getElementById('delete-modal');
             view.classList.remove('hidden');
 
-            // Global Control Logic
             const qCollection = collection(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions');
 
             const applyToAll = async (action) => {
@@ -441,12 +505,20 @@
                 await batch.commit();
             };
 
+            // Global Visibility Controls
             document.getElementById('global-show').onclick = () => applyToAll('show');
             document.getElementById('global-hide').onclick = () => applyToAll('hide');
-            document.getElementById('global-delete').onclick = () => {
-                if (confirm("Are you sure you want to delete ALL inquiries? This cannot be undone.")) {
-                    applyToAll('delete');
-                }
+
+            // Delete Modal Logic
+            document.getElementById('global-delete-trigger').onclick = () => {
+                deleteModal.classList.remove('hidden');
+            };
+            document.getElementById('modal-cancel').onclick = () => {
+                deleteModal.classList.add('hidden');
+            };
+            document.getElementById('modal-confirm').onclick = async () => {
+                await applyToAll('delete');
+                deleteModal.classList.add('hidden');
             };
             
             onSnapshot(qCollection, (snapshot) => {
@@ -454,21 +526,25 @@
                     .map(d => ({ id: d.id, ...d.data() }))
                     .sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
 
-                list.innerHTML = items.length ? "" : '<div style="opacity:0.5">Waiting for inquiries...</div>';
+                list.innerHTML = items.length ? "" : '<div style="opacity:0.3; text-align:center; padding: 40px;">No inquiries in the loop...</div>';
                 items.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
                     card.innerHTML = `
                         <div style="flex:1">
-                            <small style="color:var(--accent-red)">${item.isAnonymous ? '[ANON]' : ''} ${escapeHTML(item.nickname)}</small>
-                            <p style="margin:5px 0 0 0">${escapeHTML(item.text)}</p>
+                            <small style="color:var(--accent-red); font-weight:bold;">${item.isAnonymous ? '[ANONYMOUS]' : ''} ${escapeHTML(item.nickname)}</small>
+                            <p style="margin:8px 0 0 0; font-size:1.1rem;">${escapeHTML(item.text)}</p>
                         </div>
                         <div class="admin-controls">
                             <button class="toggle-btn ${item.visible ? 'btn-hide' : 'btn-show'}">${item.visible ? 'HIDE' : 'SHOW'}</button>
                             <button class="toggle-btn btn-delete">DEL</button>
                         </div>
                     `;
-                    card.querySelector('.btn-delete').onclick = () => deleteDoc(doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', item.id));
+                    card.querySelector('.btn-delete').onclick = () => {
+                        if(confirm("Delete this specific inquiry?")) {
+                            deleteDoc(doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', item.id));
+                        }
+                    };
                     card.querySelector('.btn-show, .btn-hide').onclick = () => updateDoc(doc(db, 'artifacts', APP_COLLECTION_ID, 'public', 'data', 'questions', item.id), { visible: !item.visible });
                     list.appendChild(card);
                 });
