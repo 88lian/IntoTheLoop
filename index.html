@@ -154,44 +154,44 @@
             pointer-events: none;
             will-change: transform, opacity;
             
-            /* Initial entry state (hidden) */
-            opacity: 0;
-            transform: translateY(400px) rotateX(-45deg) scale(0.6) translateZ(-500px);
-            filter: blur(20px);
+            /* Explicit Initial entry state (hidden) */
+            opacity: 0 !important;
+            transform: translateY(600px) rotateX(-45deg) scale(0.6) translateZ(-500px) !important;
+            filter: blur(20px) !important;
             z-index: 10;
         }
 
         /* PRIMARY CARD (FRONT) */
         .question-card[data-index="0"] {
-            opacity: 1;
-            transform: translateY(-100px) rotateX(0deg) scale(1) translateZ(0);
-            filter: blur(0);
+            opacity: 1 !important;
+            transform: translateY(-100px) rotateX(0deg) scale(1) translateZ(0) !important;
+            filter: blur(0) !important;
             z-index: 100;
             box-shadow: 0 40px 100px rgba(0,0,0,0.5);
         }
 
         /* STACKED CARDS (BACKGROUND) */
         .question-card[data-index="1"] {
-            opacity: 0.85;
-            transform: translateY(180px) translateZ(-300px) rotateX(-15deg) scale(0.85);
+            opacity: 0.85 !important;
+            transform: translateY(180px) translateZ(-300px) rotateX(-15deg) scale(0.85) !important;
             z-index: 80;
-            filter: blur(2px);
+            filter: blur(2px) !important;
             box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
 
         .question-card[data-index="2"] {
-            opacity: 0.6;
-            transform: translateY(340px) translateZ(-600px) rotateX(-25deg) scale(0.7);
+            opacity: 0.6 !important;
+            transform: translateY(340px) translateZ(-600px) rotateX(-25deg) scale(0.7) !important;
             z-index: 60;
-            filter: blur(6px);
+            filter: blur(6px) !important;
             box-shadow: 0 15px 40px rgba(0,0,0,0.2);
         }
 
         .question-card[data-index="3"] {
-            opacity: 0.3;
-            transform: translateY(460px) translateZ(-900px) rotateX(-35deg) scale(0.6);
+            opacity: 0.3 !important;
+            transform: translateY(460px) translateZ(-900px) rotateX(-35deg) scale(0.6) !important;
             z-index: 40;
-            filter: blur(12px);
+            filter: blur(12px) !important;
         }
 
         /* Exiting Transition */
@@ -455,38 +455,41 @@
                 // Handle updates and entries
                 activeData.forEach((data, index) => {
                     let el = document.getElementById(`q-${data.id}`);
+                    const authorInfo = data.isAnonymous ? `From: ${data.nickname}` : `From: ${data.nickname} (${data.course})`;
+                    const labelText = index === 0 ? "The Primary Inquiry" : `Peculiar History [${index}]`;
+
                     if (!el) {
                         el = document.createElement('div');
                         el.id = `q-${data.id}`;
                         el.dataset.id = data.id;
                         el.className = 'question-card';
                         el.innerHTML = `
-                            <div class="card-label"></div>
-                            <span class="author-meta"></span>
-                            <p class="question-text"></p>
+                            <div class="card-label">${labelText}</div>
+                            <span class="author-meta">${authorInfo}</span>
+                            <p class="question-text">${data.text}</p>
                         `;
                         container.appendChild(el);
                         
-                        // Force a reflow to ensure the initial 'hidden' state in CSS is recognized
-                        // before the data-index attribute (which triggers the slide-in) is applied.
-                        void el.offsetWidth; 
+                        // FIX: Nested requestAnimationFrame is required to ensure the browser 
+                        // paints the initial hidden state before applying the index which 
+                        // triggers the slide-in transition.
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                el.setAttribute('data-index', index);
+                            });
+                        });
+                    } else {
+                        // For existing cards, we update the index directly to trigger movement transitions
+                        el.setAttribute('data-index', index);
+                        
+                        const labelEl = el.querySelector('.card-label');
+                        const metaEl = el.querySelector('.author-meta');
+                        const textEl = el.querySelector('.question-text');
+
+                        if (labelEl.innerText !== labelText) labelEl.innerText = labelText;
+                        if (metaEl.innerText !== authorInfo) metaEl.innerText = authorInfo;
+                        if (textEl.innerText !== data.text) textEl.innerText = data.text;
                     }
-
-                    // Applying data-index triggers the CSS transitions
-                    el.setAttribute('data-index', index);
-                    
-                    // Update content if it's new (only first time to prevent flicker)
-                    const authorInfo = data.isAnonymous ? `From: ${data.nickname}` : `From: ${data.nickname} (${data.course})`;
-                    const labelText = index === 0 ? "The Primary Inquiry" : `Peculiar History [${index}]`;
-                    
-                    const labelEl = el.querySelector('.card-label');
-                    const metaEl = el.querySelector('.author-meta');
-                    const textEl = el.querySelector('.question-text');
-
-                    // Check if content actually changed before setting to avoid disruption
-                    if (labelEl.innerText !== labelText) labelEl.innerText = labelText;
-                    if (metaEl.innerText !== authorInfo) metaEl.innerText = authorInfo;
-                    if (textEl.innerText !== data.text) textEl.innerText = data.text;
                 });
             });
         }
