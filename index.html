@@ -13,8 +13,9 @@
             --accent-red: #8b0000;
             --bg-dark: #121212;
             --admin-bg: #0f1115;
-            --transition-speed: 1.2s;
-            --ease: cubic-bezier(0.23, 1, 0.32, 1); /* Smoother exponential ease */
+            --transition-speed: 1s;
+            --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
         }
 
         /* RESET & BASE */
@@ -126,7 +127,7 @@
             max-width: 1000px;
             margin: 0 auto;
             height: 100vh;
-            perspective: 2000px;
+            perspective: 2500px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -143,8 +144,9 @@
             border-left: 15px solid var(--accent-red); 
             clip-path: polygon(0.5% 0.5%, 99.5% 0%, 100% 99.5%, 0.5% 100%);
             
+            /* Enhanced Transitions */
             transition: 
-                transform var(--transition-speed) var(--ease),
+                transform var(--transition-speed) var(--ease-out-back),
                 opacity var(--transition-speed) ease,
                 filter var(--transition-speed) ease,
                 box-shadow var(--transition-speed) ease;
@@ -152,8 +154,9 @@
             pointer-events: none;
             will-change: transform, opacity;
             
+            /* Initial entry state (hidden) */
             opacity: 0;
-            transform: translateY(100vh) rotateX(-45deg) scale(0.6);
+            transform: translateY(400px) rotateX(-45deg) scale(0.6) translateZ(-500px);
             filter: blur(20px);
             z-index: 10;
         }
@@ -161,39 +164,42 @@
         /* PRIMARY CARD (FRONT) */
         .question-card[data-index="0"] {
             opacity: 1;
-            transform: translateY(-80px) rotateX(0deg) scale(1) translateZ(0);
+            transform: translateY(-100px) rotateX(0deg) scale(1) translateZ(0);
             filter: blur(0);
             z-index: 100;
             box-shadow: 0 40px 100px rgba(0,0,0,0.5);
         }
 
         /* STACKED CARDS (BACKGROUND) */
-        /* We push them DOWN (translateY) and BACK (translateZ) so they don't overlap textually */
         .question-card[data-index="1"] {
-            opacity: 0.8;
-            transform: translateY(180px) translateZ(-250px) rotateX(-15deg) scale(0.85);
+            opacity: 0.85;
+            transform: translateY(180px) translateZ(-300px) rotateX(-15deg) scale(0.85);
             z-index: 80;
             filter: blur(2px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
 
         .question-card[data-index="2"] {
-            opacity: 0.5;
-            transform: translateY(320px) translateZ(-500px) rotateX(-25deg) scale(0.7);
+            opacity: 0.6;
+            transform: translateY(340px) translateZ(-600px) rotateX(-25deg) scale(0.7);
             z-index: 60;
-            filter: blur(5px);
+            filter: blur(6px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
         }
 
         .question-card[data-index="3"] {
-            opacity: 0.2;
-            transform: translateY(440px) translateZ(-750px) rotateX(-35deg) scale(0.6);
+            opacity: 0.3;
+            transform: translateY(460px) translateZ(-900px) rotateX(-35deg) scale(0.6);
             z-index: 40;
-            filter: blur(10px);
+            filter: blur(12px);
         }
 
+        /* Exiting Transition */
         .question-card.exiting {
             opacity: 0 !important;
-            transform: translateY(-600px) rotateX(45deg) scale(0.5) translateZ(500px) !important;
-            filter: blur(40px) !important;
+            transform: translateY(-800px) rotateX(45deg) scale(0.4) translateZ(800px) !important;
+            filter: blur(50px) !important;
+            transition: transform 1.2s var(--ease-in-out), opacity 1s ease, filter 1s ease !important;
         }
 
         .card-label { 
@@ -436,14 +442,17 @@
                     .slice(0, 4); 
 
                 const activeIds = new Set(activeData.map(d => d.id));
+                
+                // Handle exits
                 Array.from(container.querySelectorAll('.question-card')).forEach(el => {
                     if (!activeIds.has(el.dataset.id) && !el.classList.contains('exiting')) {
                         el.classList.add('exiting');
                         el.removeAttribute('data-index');
-                        setTimeout(() => el.remove(), 1300);
+                        setTimeout(() => el.remove(), 1200);
                     }
                 });
 
+                // Handle updates and entries
                 activeData.forEach((data, index) => {
                     let el = document.getElementById(`q-${data.id}`);
                     if (!el) {
@@ -457,12 +466,27 @@
                             <p class="question-text"></p>
                         `;
                         container.appendChild(el);
+                        
+                        // Force a reflow to ensure the initial 'hidden' state in CSS is recognized
+                        // before the data-index attribute (which triggers the slide-in) is applied.
+                        void el.offsetWidth; 
                     }
 
+                    // Applying data-index triggers the CSS transitions
                     el.setAttribute('data-index', index);
-                    el.querySelector('.card-label').innerText = index === 0 ? "The Primary Inquiry" : `Peculiar History [${index}]`;
-                    el.querySelector('.author-meta').innerText = data.isAnonymous ? `From: ${data.nickname}` : `From: ${data.nickname} (${data.course})`;
-                    el.querySelector('.question-text').innerText = data.text;
+                    
+                    // Update content if it's new (only first time to prevent flicker)
+                    const authorInfo = data.isAnonymous ? `From: ${data.nickname}` : `From: ${data.nickname} (${data.course})`;
+                    const labelText = index === 0 ? "The Primary Inquiry" : `Peculiar History [${index}]`;
+                    
+                    const labelEl = el.querySelector('.card-label');
+                    const metaEl = el.querySelector('.author-meta');
+                    const textEl = el.querySelector('.question-text');
+
+                    // Check if content actually changed before setting to avoid disruption
+                    if (labelEl.innerText !== labelText) labelEl.innerText = labelText;
+                    if (metaEl.innerText !== authorInfo) metaEl.innerText = authorInfo;
+                    if (textEl.innerText !== data.text) textEl.innerText = data.text;
                 });
             });
         }
